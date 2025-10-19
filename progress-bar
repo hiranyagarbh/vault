@@ -1,12 +1,33 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 progress-bar() {
-    local i=$1
+    local current=$1
     local len=$2
-    # local bar=$(printf "%-${i}s" | tr ' ' '#')
-    # printf "\r[%-${len}s] %d/%d" "$bar" "$i" "$len"
-    percent_done=$((i*100/len))
-    echo "Processing file $i/$len ($percent_done%)"
+
+    local length=50
+    percent_done=$((current*100/len))
+    local num_bars=$((percent_done * length / 100))
+
+    local i
+    local bar_char='|'
+    local empty_char='.'
+    local s='['
+    for ((i=0; i<num_bars; i++))
+    do
+        s+=$'\e[32m'$bar_char$'\e[0m'
+    done
+    for ((i=num_bars; i<length; i++))
+    do
+        s+=$empty_char
+    done
+    s+=']'
+
+    echo -ne "$s $current/$len ($percent_done%)\r"
+}
+
+process-file() {
+    local file=$1
+    sleep 0.01
 }
 
 shopt -s globstar nullglob
@@ -20,5 +41,7 @@ echo "Processing files..."
 i=0
 for file in "${files[@]}"; do
     progress-bar "$((i+1))" "$len"
+    process-file "$file"
     ((i++))
 done
+echo
