@@ -1,0 +1,24 @@
+#!/bin/bash
+
+progress-bar() {
+    local i=$1
+    local len=$2
+    # local bar=$(printf "%-${i}s" | tr ' ' '#')
+    # printf "\r[%-${len}s] %d/%d" "$bar" "$i" "$len"
+    percent_done=$((i*100/len))
+    echo "Processing file $i/$len ($percent_done%)"
+}
+
+shopt -s globstar nullglob
+
+echo "Finding files..."
+files=(./**/*cache)
+len=${#files[@]}
+echo "Found $len files."
+
+echo "Processing files..."
+i=0
+for file in "${files[@]}"; do
+    progress-bar "$((i+1))" "$len"
+    ((i++))
+done
