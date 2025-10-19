@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
 
+BATCH_SIZE=10
+
 progress-bar() {
     local current=$1
     local len=$2
@@ -39,11 +41,11 @@ echo "Found $len files."
 
 echo "Processing files..."
 
-batchSize=10
-for ((i=0; i<len; i+=batchSize))
+
+for ((i=0; i<len; i+=BATCH_SIZE))
 do
     progress-bar "$((i+1))" "$len"
-    process-files "${files[@]:i:batchSize}"
+    process-files "${files[@]:i:$BATCH_SIZE}"
 done
 progress-bar "$len" "$len"
 
