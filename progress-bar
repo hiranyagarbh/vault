@@ -25,8 +25,8 @@ progress-bar() {
     echo -ne "$s $current/$len ($percent_done%)\r"
 }
 
-process-file() {
-    local file=$1
+process-files() {
+    local files=("$@")
     sleep 0.01
 }
 
@@ -38,10 +38,13 @@ len=${#files[@]}
 echo "Found $len files."
 
 echo "Processing files..."
-i=0
-for file in "${files[@]}"; do
+
+batchSize=10
+for ((i=0; i<len; i+=batchSize))
+do
     progress-bar "$((i+1))" "$len"
-    process-file "$file"
-    ((i++))
+    process-files "${files[@]:i:batchSize}"
 done
+progress-bar "$len" "$len"
+
 echo
