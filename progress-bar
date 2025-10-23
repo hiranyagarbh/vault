@@ -1,6 +1,11 @@
 #!/usr/bin/env bash
 
-BATCH_SIZE=5
+BATCH_SIZE=1
+
+fatal() {
+    echo '[FATAL]' "@" >&2
+    exit 1
+}
 
 progress-bar() {
     local current=$1
@@ -24,12 +29,21 @@ progress-bar() {
     done
     s+=']'
 
-    echo -ne "$s $current/$len ($percent_done%)\r"
+    echo -ne "\r$s $current/$len ($percent_done%)"
 }
 
 main() {
+    local OPTARG OPTIND opt
+    while getopts ":b:" opt; do
+        case $opt in
+            b) BATCH_SIZE=$OPTARG;;
+            *) fatal 'Bad option';;
+        esac
+    done
+
     process-files() {
         local files=("$@")
+        echo "Processing batch of ${#files[@]} files..."
         sleep 0.01
     }
 
@@ -40,7 +54,6 @@ main() {
     local len=${#files[@]}
     echo "Found $len files."
 
-    echo "Processing cache files..."
 
     local i
     for ((i=0; i<len; i+=BATCH_SIZE))
