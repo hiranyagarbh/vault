@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-BATCH_SIZE=10
+BATCH_SIZE=5
 
 progress-bar() {
     local current=$1
@@ -27,26 +27,30 @@ progress-bar() {
     echo -ne "$s $current/$len ($percent_done%)\r"
 }
 
-process-files() {
-    local files=("$@")
-    sleep 0.01
+main() {
+    process-files() {
+        local files=("$@")
+        sleep 0.01
+    }
+
+    shopt -s globstar nullglob
+
+    echo "Finding cache files..."
+    local files=(./**/*cache)
+    local len=${#files[@]}
+    echo "Found $len files."
+
+    echo "Processing cache files..."
+
+    local i
+    for ((i=0; i<len; i+=BATCH_SIZE))
+    do
+        progress-bar "$((i+1))" "$len"
+        process-files "${files[@]:i:$BATCH_SIZE}"
+    done
+    progress-bar "$len" "$len"
+
+    echo
 }
 
-shopt -s globstar nullglob
-
-echo "Finding files..."
-files=(./**/*cache)
-len=${#files[@]}
-echo "Found $len files."
-
-echo "Processing files..."
-
-
-for ((i=0; i<len; i+=BATCH_SIZE))
-do
-    progress-bar "$((i+1))" "$len"
-    process-files "${files[@]:i:$BATCH_SIZE}"
-done
-progress-bar "$len" "$len"
-
-echo
+main "$@"
