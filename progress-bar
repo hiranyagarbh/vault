@@ -10,14 +10,15 @@ fatal() {
 progress-bar() {
     local current=$1
     local len=$2
+    local bar_char='|'
+    local empty_char='.'
+    local percent_done=$((current*100/len))
 
-    local length=50
-    percent_done=$((current*100/len))
+    local suffix=" $current/$len ($percent_done%)"
+    local length=$((COLUMNS - ${#suffix} - 2))
     local num_bars=$((percent_done * length / 100))
 
     local i
-    local bar_char='|'
-    local empty_char='.'
     local s='['
     for ((i=0; i<num_bars; i++))
     do
@@ -28,7 +29,7 @@ progress-bar() {
         s+=$empty_char
     done
     s+=']'
-    s+=" $current/$len ($percent_done%)"
+    s+=$suffix
 
     printf '\e7'                                # save the cursor loc
         printf '\e[%d;%dH' "$LINES" 0           # move to the bottom line
@@ -36,6 +37,8 @@ progress-bar() {
         printf '%s' "$s"                        # print the progress bar
     printf '\e8'                                # restore the cursor loc
 }
+
+# TODO FIX: resizing terminal window w running process breaks the logic
 
 init-term () {
     printf '\n'                                     # ensure we have space for the progress bar
@@ -71,8 +74,14 @@ main() {
 
     process-files() {
         local files=("$@")
-        # echo "Processing batch of ${#files[@]} files..."
-        sleep 0.01
+        echo "Processing batch of ${#files[@]} files..."
+
+
+        local file
+        for file in "${files[@]}"; do
+            echo "-> $file..."
+        done
+        sleep 0.1
     }
 
 
