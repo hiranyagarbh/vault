@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
 
 BATCH_SIZE=1
+BAR_CHAR='|'
+EMPTY_CHAR='.'
 
 fatal() {
     echo '[FATAL]' "@" >&2
@@ -10,8 +12,6 @@ fatal() {
 progress-bar() {
     local current=$1
     local len=$2
-    local bar_char='|'
-    local empty_char='.'
     local percent_done=$((current*100/len))
 
     local suffix=" $current/$len ($percent_done%)"
@@ -22,11 +22,11 @@ progress-bar() {
     local s='['
     for ((i=0; i<num_bars; i++))
     do
-        s+=$'\e[32m'$bar_char$'\e[0m'
+        s+=$'\e[32m'$BAR_CHAR$'\e[0m'
     done
     for ((i=num_bars; i<length; i++))
     do
-        s+=$empty_char
+        s+=$EMPTY_CHAR
     done
     s+=']'
     s+=$suffix
@@ -38,7 +38,6 @@ progress-bar() {
     printf '\e8'                                # restore the cursor loc
 }
 
-# TODO FIX: resizing terminal window w running process breaks the logic
 
 init-term () {
     printf '\n'                                     # ensure we have space for the progress bar
@@ -58,9 +57,11 @@ deinit-term () {
 
 main() {
     local OPTARG OPTIND opt
-    while getopts ":b:" opt; do
+    while getopts ":b:c:e:" opt; do
         case $opt in
             b) BATCH_SIZE=$OPTARG;;
+            c) BAR_CHAR=$OPTARG;;
+            e) EMPTY_CHAR=$OPTARG;;
             *) fatal 'Bad option';;
         esac
     done
@@ -70,6 +71,7 @@ main() {
     COLUMNS=$(tput cols)
 
     trap deinit-term exit
+    trap init-term winch    #responsive to window resize
     init-term
 
     process-files() {
