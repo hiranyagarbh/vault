@@ -28,24 +28,29 @@ progress-bar() {
         s+=$empty_char
     done
     s+=']'
+    s+=" $current/$len ($percent_done%)"
 
-    echo -ne "\r$s $current/$len ($percent_done%)"
+    printf '\e7'                                # save the cursor loc
+        printf '\e[%d;%dH' "$LINES" 0           # move to the bottom line
+        printf '\e[0K'                          # clear the line
+        printf '%s' "$s"                        # print the progress bar
+    printf '\e8'                                # restore the cursor loc
 }
 
 init-term () {
     printf '\n'                                     # ensure we have space for the progress bar
-        printf  '\e7'                               # save the cursor location
+        printf  '\e7'                               # save the cursor loc
             printf  '\e[%d;%dr' 0 "$((LINES-1))"    # set the scrollable region (margin)
-        printf  '\e8'                               # restore the cursor location
+        printf  '\e8'                               # restore the cursor loc
     printf  '\e[1A'                                 # move cursor up one line
 }
 
 deinit-term () {
-    printf  '\e7'                               # save the cursor location
+    printf  '\e7'                               # save the cursor loc
         printf  '\e[%d;%dr' 0 "$LINES"          # reset the scrollable region (margin)
         printf '\e[%d;%dH' "$LINES" 0           # move cursor to bottom line and clear line
         printf '\e[0K'                          # clear the line
-    printf  '\e8'                               # reset the cursor location
+    printf  '\e8'                               # reset the cursor loc
 }
 
 main() {
@@ -85,8 +90,6 @@ main() {
         process-files "${files[@]:i:$BATCH_SIZE}"
     done
     progress-bar "$len" "$len"
-
-    echo
 }
 
 main "$@"
