@@ -1,1 +1,1 @@
-[]
+[{"id":1,"description":"Buy groceries","status":"done","createdAt":"2026-05-27T15:44:42.416Z","updatedAt":"2026-05-27T15:44:42.594Z"},{"id":2,"description":"Cook dinner and dessert","status":"in-progress","createdAt":"2026-05-27T15:44:42.440Z","updatedAt":"2026-05-27T15:44:42.705Z"},{"id":4,"description":"Call mom and dad","status":"todo","createdAt":"2026-05-27T15:44:42.484Z","updatedAt":"2026-05-27T15:44:42.727Z"}]
