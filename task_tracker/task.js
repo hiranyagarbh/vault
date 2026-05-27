@@ -10,6 +10,22 @@ else fs.writeFileSync(path, JSON.stringify([]));
 const command = process.argv[2];
 const argument = process.argv[3];
 
+// ====== { REFACTORING } ========
+function getInputId() { 
+    let inputId = parseInt(process.argv[3]);
+    return inputId;
+ }
+function validateId(inputId) { 
+    if(!data.some(task => task.id === inputId)) {
+        console.error(`ID not found. (ID: ${inputId})`);
+        process.exit(1);
+    }
+ }
+function getTask(inputId) { 
+    let task = data.find(task => task.id === inputId);
+    return task;
+ }
+
 // == [ ADD ] ==
 if (command === 'add') {
     let dateMade = new Date().toISOString()
@@ -33,11 +49,8 @@ if (command === 'add') {
 
 // == [ DELETE ] ==
 if (command === 'delete') {
-    let inputId = parseInt(process.argv[3]);
-    if(!data.some(task => task.id === inputId)) {
-        console.error(`ID not found (ID: ${inputId})`);
-        process.exit(1);
-    }
+    let inputId = getInputId();
+    validateId(inputId);
 
     data = data.filter(task => inputId != task.id);
     fs.writeFileSync(path, JSON.stringify(data));
@@ -46,15 +59,12 @@ if (command === 'delete') {
 
 // == [ UPDATE ] ==
 if (command === 'update') {
-    let inputId = parseInt(process.argv[3]);
+    let inputId = getInputId();
+    validateId(inputId);
     let newDescription = process.argv[4];
 
-    if(!data.some(task => task.id === inputId)) {
-        console.error(`ID not found. (ID: ${inputId})`);
-        process.exit(1);
-    }
+    let task = getTask(inputId);
 
-    let task = data.find(task => task.id === inputId)
     if (task.description === newDescription) {
         console.error(`Description already exists. (ID: ${inputId})`);
         process.exit(1);
@@ -68,13 +78,11 @@ if (command === 'update') {
 
 // == [ MARK IN-PROGRESS ] ==
 if (command === 'mark-in-progress') {
-    let inputId = parseInt(process.argv[3]);
-    if(!data.some(task => task.id === inputId)) {
-        console.error(`ID not found. (ID: ${inputId})`);
-        process.exit(1);
-    }
+    let inputId = parseInt(getInputId());
+    validateId(inputId);
     
-    let task = data.find(task => task.id === inputId);
+    let task = getTask(inputId);
+
     if(task.status === 'in-progress') {
         console.error(`Task already marked in-progress. (ID: ${inputId})`);
         process.exit(1);
@@ -88,13 +96,11 @@ if (command === 'mark-in-progress') {
 
 // == [ MARK DONE ] ==
 if (command === 'mark-done') {
-    let inputId = parseInt(process.argv[3]);
-    if(!data.some(task => task.id === inputId)) {
-        console.error(`ID not found. (ID: ${inputId})`);
-        process.exit(1);
-    }
+    let inputId = parseInt(getInputId());
+    validateId(inputId);
     
-    let task = data.find(task => task.id === inputId);
+    let task = getTask(inputId);
+
     if(task.status === 'done') {
         console.error(`Task already marked done. (ID: ${inputId})`);
         process.exit(1);
@@ -117,3 +123,5 @@ if (!validCommand.includes(command)) {
     console.error('Invalid Command');
     process.exit(1);
 }
+
+
