@@ -19,8 +19,18 @@ if (command === 'add') {
         'updatedAt': dateMade
     }
     data.push(task)
+    // console.log(task)
     fs.writeFileSync(path, JSON.stringify(data));
     console.log(`Task added successfully (ID: ${task.id})`);
 }
 
 // == [ DELETE ] ==
+if (command === 'delete') {
+    let inputId = parseInt(process.argv[3]);
+    if(!data.some(task => task.id === inputId))
+        throw new Error('ID not found')
+
+    data = data.filter(task => inputId != task.id);
+    fs.writeFileSync(path, JSON.stringify(data));
+    console.log(`Task deleted successfully (ID: ${inputId})`)
+}
