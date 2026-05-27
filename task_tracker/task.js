@@ -1,3 +1,4 @@
+const { errorMonitor } = require('events');
 const fs = require('fs');
 const path = 'tasks.json';
 let data = []
@@ -28,9 +29,26 @@ if (command === 'add') {
 if (command === 'delete') {
     let inputId = parseInt(process.argv[3]);
     if(!data.some(task => task.id === inputId))
-        throw new Error('ID not found')
+        throw new Error(`ID not found (ID: ${inputId})`)
 
     data = data.filter(task => inputId != task.id);
     fs.writeFileSync(path, JSON.stringify(data));
     console.log(`Task deleted successfully (ID: ${inputId})`)
+}
+
+// == [ UPDATE ] ==
+if (command === 'update') {
+    let inputId = parseInt(process.argv[3]);
+    let newDescription = process.argv[4];
+
+    if(!data.some(task => task.id === inputId))
+        throw new Error(`ID not found (ID: ${inputId})`)
+
+    let task = data.find(task => task.id === inputId)
+    task.description = newDescription
+    task.updatedAt = new Date().toISOString()
+    
+    fs.writeFileSync(path, JSON.stringify(data));
+
+    console.log(`Task updated successfully (ID: ${inputId})`)
 }
