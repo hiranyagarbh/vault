@@ -59,6 +59,8 @@ function displayEvents( events ) {
             }
         } else if ( event.type === 'WatchEvent' ) {
             console.log(`Starred ${event.repo.name}`);
+        } else {
+            console.log(`Unknown event: ${event.type} in ${event.repo.name}`);
         }
     }
 };
