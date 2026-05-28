@@ -26,53 +26,59 @@ function fetchAPI() {
         response.on('data', (chunk) => { data += chunk })
 
         response.on('end', () => {
-            let events = JSON.parse(data)
-            
-            // save res to cache 
-            fs.writeFileSync(path, JSON.stringify({timestamp : Date.now(), data: events}));
+            try {
+                let events = JSON.parse(data)
+                // save res to cache 
+                fs.writeFileSync(path, JSON.stringify({timestamp : Date.now(), data: events}));
+                // apple filter by eventType if any
+                if(process.argv[3]){events = events.filter(event => event.type === process.argv[3])};
+                displayEvents(events);
 
-            // apple filter by eventType if any
-            if(process.argv[3]){events = events.filter(event => event.type === process.argv[3])};
-            
-            displayEvents(events);
+            } catch(e) {
+                console.error(`Failed to parse response (FetchAPI): ${e}`);
+                process.exit(1);
+            }
             } 
         );
     })
 };
 
-function displayEvents(events) {
-    for (const event of events) {    
-        if (event.type === 'PushEvent') {
+function displayEvents( events ) {
+    for ( const event of events ) {    
+        if ( event.type === 'PushEvent' ) {
             console.log(`Pushed commits to ${event.repo.name}.`);
         }
-        else if (event.type === 'IssueCommentEvent') {
+        else if ( event.type === 'IssueCommentEvent' ) {
             console.log(`Commented (${event.payload.issue.number}) on issue in ${event.repo.name} : ${event.payload.issue.title}`);
         }
-        else if (event.type === 'PullRequestEvent') {
-            if ( event.payload.action === 'closed' ) { console.log(`Closed PR in ${event.repo.name}.`); }
-            else { console.log(`Opened/Closed PR in ${event.repo.name}.`); }
-        }
-        else if (event.type === 'WatchEvent') {
-            console.log(`Starred ${event.repo.name}`)
+        else if ( event.type === 'PullRequestEvent' ) {
+            if ( event.payload.action === 'closed' ) { 
+                console.log(`Closed PR in ${event.repo.name}.`); 
+            } else { 
+                console.log(`Opened/Closed PR in ${event.repo.name}.`); 
+            }
+        } else if ( event.type === 'WatchEvent' ) {
+            console.log(`Starred ${event.repo.name}`);
         }
     }
 };
 
 function main() {
     if (fs.existsSync( path )){
-        let cached_data = JSON.parse(fs.readFileSync( path, 'utf8' ));
+        try {
+            
+            let cached_data = JSON.parse(fs.readFileSync( path, 'utf8' ));
+            const cachedAge = ( Date.now() ) - cached_data.timestamp;
+            const fiveMinutes = 300000;      // in ms
+            // retrieve cache if fresh
+            if ( cachedAge <= fiveMinutes ) { displayEvents(cached_data.data);};
+            // if stale - fetch and update from API
+            if ( cachedAge > fiveMinutes ) { fetchAPI() };
 
-        const diff = ( Date.now() ) - cached_data.timestamp;
-        const fiveMinutes = 300000;      // in ms
-
-        //debug
-        // console.log('is fresh:', diff <= fiveMinutes);
-
-        // retrieve cache if fresh
-        if ( diff <= fiveMinutes ) { displayEvents(cached_data.data); console.log('cache hit') };
-        
-        // if stale - fetch and update from API
-        if ( diff > fiveMinutes ) { fetchAPI() };
+        } catch(e) {
+            console.error(`Failed to parse response (main): ${e}`);
+            process.exit(1);
+        }
 
     } else { fetchAPI(); }
 };
