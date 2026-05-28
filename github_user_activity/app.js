@@ -22,8 +22,11 @@ https.get(urlOptions, (response) => {
     response.on('data', (chunk) => { data += chunk })
 
     response.on('end', () => {
-        const events = JSON.parse(data)
-        for (const event of events) {
+        let events = JSON.parse(data)
+        
+        if(process.argv[3]){events = events.filter(event => event.type === process.argv[3])};   //filter by eventType
+
+        for (const event of events) {    
             if (event.type === 'PushEvent') {
                 console.log(`Pushed commits to ${event.repo.name}.`);
             }
