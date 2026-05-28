@@ -63,6 +63,7 @@ function displayEvents( events ) {
             console.log(`Unknown event: ${event.type} in ${event.repo.name}`);
         }
     }
+    if ( events.length === 0 ) console.log('No events found.');
 };
 
 function main() {
