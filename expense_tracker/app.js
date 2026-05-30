@@ -30,6 +30,16 @@ function validateId(expenseId) {
     }
 };
 
+function getMonthName(monthNum) {
+    if (monthNum >= 1 && monthNum <= 12){
+        return new Date(2026, monthNum).toLocaleString("en-US", { month: "short", timeZone: "UTC" });
+    }
+    else {
+        console.error(`Invalid month provided (month: ${monthNum}).`);
+        process.exit(1);
+    }
+}
+
 if (command === 'add') {
     let dateMade = new Date().toISOString();
     if(flags.description && flags.amount) {
@@ -54,7 +64,7 @@ if (command === 'delete') {
         validateId(parseInt(flags.id));
         data = data.filter(expense => expense.id != parseInt(flags.id));
         fs.writeFileSync(path, JSON.stringify(data));
-        console.log(`Expense deleted succesfully (ID: ${flags.id})`);
+        console.log(`Expense deleted succesfully (ID: ${flags.id}).`);
     }
     else {
         console.error(`Expense --id not provided.`);
@@ -67,18 +77,13 @@ if (command === 'list') {
 };
 
 if (command === 'summary') {
-    let total = 0;
-    const shortMonths = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-    
+    let total = 0;    
     if(flags.month) {
-        for (const expense of data) {
-            let expenseDate = new Date(expense.date).getUTCMonth() + 1;
-            if (expenseDate === parseInt(flags.month)){total += expense.amount;} //refactor using filter(month) and reduce(tottal, curr)
-        };
-        console.log(`Total expenses for month of ${shortMonths[flags.month - 1]}: $${total}.`);
+        const monthTotal = data.filter(expense => (new Date(expense.date).getUTCMonth() + 1) === parseInt(flags.month)).reduce((total, curr) => total + parseInt(curr.amount), 0);
+        console.log(`Total expenses for month of ${getMonthName(flags.month)}: $${monthTotal}.`);
     }
     else {
-        for (const expense of data) {total += expense.amount;}
+        total = data.reduce((total, curr) => total + parseInt(curr.amount), 0)
         console.log(`Total expenses: $${total}.`)
     }
 };
