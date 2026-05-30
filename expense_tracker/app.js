@@ -32,12 +32,12 @@ function validateId(expenseId) {
 
 if (command === 'add') {
     let dateMade = new Date().toISOString();
-    if(flags) {
+    if(flags.description || flags.amount) {
         let expense = {
             'id': data.length + 1,
             'date': dateMade,
-            'description': flags[description],
-            'amount': flags[amount]
+            'description': flags.description,
+            'amount': flags.amount
         }
         data.push(expense);
         fs.writeFileSync(path, JSON.stringify(data));
@@ -51,7 +51,7 @@ if (command === 'add') {
 
 if (command === 'delete') {
     if (flags) {
-        validateId(flags.id);
+        validateId(parseInt(flags.id));
         data = data.filter(expense => expense.id != flags.id);
         fs.writeFileSync(path, JSON.stringify(data));
         console.log(`Expense deleted succesfully (ID: ${flags.id})`);
@@ -64,6 +64,16 @@ if (command === 'delete') {
 
 if (command === 'list') {
     console.log(data)
+}
+
+if (command === 'summary') {
+    if(flags) {
+        // check if valid month exists
+        // output total of that month
+    }
+    else {
+        // print sum
+    }
 }
 
 
