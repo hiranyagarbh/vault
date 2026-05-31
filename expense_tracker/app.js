@@ -1,8 +1,8 @@
 import fs from 'node:fs';
 const path = 'expenses.json';
-let data = []
-let validCommands = ['add', 'delete', 'list', 'summary', 'update']
-let validFlags = ['id', 'description', 'amount', 'month']
+let data = [];
+let validCommands = ['add', 'delete', 'list', 'summary', 'update'];
+let validFlags = ['id', 'description', 'amount', 'month'];
 
 if (fs.existsSync(path)) data = JSON.parse(fs.readFileSync(path, 'utf8'));
 else fs.writeFileSync(path, JSON.stringify([]));
@@ -62,13 +62,13 @@ if (command === 'add') {
             'date': dateMade,
             'description': flags.description,
             'amount': parseInt(flags.amount)
-        }
+        };
         data.push(expense);
         fs.writeFileSync(path, JSON.stringify(data));
         console.log(`Expense added successfully. (ID: ${expense.id})`);
     }
     else {
-        console.error(`Expense --description or --amount not provided.`)
+        console.error(`Expense --description or --amount not provided.`);
         process.exit(1);
     }
 };
@@ -90,7 +90,7 @@ if (command === 'update') {
     if (flags.id) {
         validateId(parseInt(flags.id));
         let expense = getExpense(parseInt(flags.id));
-        let message = ''
+        let message = '';
         
         if (flags.description && flags.amount){
             expense.description = flags.description;
@@ -120,17 +120,17 @@ if (command === 'update') {
 
 if (command === 'summary') {
     let total = 0;
-    if(flags.month) {
+    if ( flags.month ) {
         const monthTotal = data.filter(expense => (new Date(expense.date).getUTCMonth() + 1) === parseInt(flags.month)).reduce((total, curr) => total + parseInt(curr.amount), 0);
         console.log(`Total expenses for month of ${getMonthName(flags.month)}: $${monthTotal}.`);
     }
     else {
-        total = data.reduce((total, curr) => total + parseInt(curr.amount), 0)
-        console.log(`Total expenses: $${total}.`)
+        total = data.reduce((total, curr) => total + parseInt(curr.amount), 0);
+        console.log(`Total expenses: $${total}.`);
     }
 };
 
-if (command === 'list') {console.table(data)};
+if (command === 'list') { console.table(data) };
 
 // fallback funct
 if (!validCommands.includes(command)) {
