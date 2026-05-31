@@ -47,7 +47,7 @@ function getExpense(expenseId) {
 
 if (command === 'add') {
     let dateMade = new Date().toISOString();
-    if(flags.description && flags.amount && flags.amount > 0) {
+    if(flags.description && flags.amount && parseInt(flags.amount) > 0) {
         let expense = {
             'id': data.length + 1,
             'date': dateMade,
@@ -80,30 +80,28 @@ if (command === 'delete') {
 if (command === 'update') {
     if (flags.id) {
         validateId(parseInt(flags.id));
+        let expense = getExpense(parseInt(flags.id));
+        let message = ''
         
         if (flags.description && flags.amount){
-            let expense = getExpense(parseInt(flags.id));
             expense.description = flags.description;
             expense.amount = parseInt(flags.amount);
-            fs.writeFileSync(path, JSON.stringify(data));
-            console.log(`Expense description and amount updated successfully. (ID: ${parseInt(flags.id)})`);
+            message = `Expense description and amount updated. (ID: ${parseInt(flags.id)})`
         }
         else if(flags.description) {
-            let expense = getExpense(parseInt(flags.id));
             expense.description = flags.description;
-            fs.writeFileSync(path, JSON.stringify(data));
-            console.log(`Expense description updated successfully. (ID: ${parseInt(flags.id)})`);
+            message = `Expense description updated. (ID: ${parseInt(flags.id)})`
         } 
         else if (flags.amount){
-            let expense = getExpense(parseInt(flags.id));
             expense.amount = parseInt(flags.amount);
-            fs.writeFileSync(path, JSON.stringify(data));
-            console.log(`Expense amount updated successfully. (ID: ${parseInt(flags.id)})`);
+            message = `Expense amount updated. (ID: ${parseInt(flags.id)})`
         }
         else {
             console.error(`New expense --description or --amount not provided.`);
             process.exit(1);
         }
+        fs.writeFileSync(path, JSON.stringify(data));
+        console.log(message);
     }
     else {
         console.error(`Expense --id not provided.`);
