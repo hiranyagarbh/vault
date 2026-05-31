@@ -7,7 +7,6 @@ let validFlags = ['id', 'description', 'amount', 'month']
 if (fs.existsSync(path)) data = JSON.parse(fs.readFileSync(path, 'utf8'));
 else fs.writeFileSync(path, JSON.stringify([]));
 
-
 function getFlags() {
     let flags = {};
     let inp = process.argv;
@@ -39,7 +38,6 @@ function validateId(expenseId) {
         process.exit(1);
     }
 };
-
 
 function getMonthName(monthNum) {
     if (monthNum >= 1 && monthNum <= 12){
@@ -97,15 +95,15 @@ if (command === 'update') {
         if (flags.description && flags.amount){
             expense.description = flags.description;
             expense.amount = parseInt(flags.amount);
-            message = `Expense description and amount updated. (ID: ${parseInt(flags.id)})`
+            message = `Expense description and amount updated. (ID: ${parseInt(flags.id)})`;
         }
         else if(flags.description) {
             expense.description = flags.description;
-            message = `Expense description updated. (ID: ${parseInt(flags.id)})`
+            message = `Expense description updated. (ID: ${parseInt(flags.id)})`;
         } 
         else if (flags.amount){
             expense.amount = parseInt(flags.amount);
-            message = `Expense amount updated. (ID: ${parseInt(flags.id)})`
+            message = `Expense amount updated. (ID: ${parseInt(flags.id)})`;
         }
         else {
             console.error(`New expense --description or --amount not provided.`);
@@ -121,7 +119,7 @@ if (command === 'update') {
 }
 
 if (command === 'summary') {
-    let total = 0;    
+    let total = 0;
     if(flags.month) {
         const monthTotal = data.filter(expense => (new Date(expense.date).getUTCMonth() + 1) === parseInt(flags.month)).reduce((total, curr) => total + parseInt(curr.amount), 0);
         console.log(`Total expenses for month of ${getMonthName(flags.month)}: $${monthTotal}.`);
