@@ -20,8 +20,18 @@ function getFlags() {
     return flags;
 };
 
+function validateFlag(flags) {
+    let flag_keys = Object.keys(flags);
+    if(!flag_keys.every(key => validFlags.includes(key))) {
+        let unknown_keys = flag_keys.filter(key => !validFlags.includes(key));
+        console.error(`Unknown Flag(s): ${unknown_keys}`);
+        process.exit(1);
+    }
+};
+
 const command = process.argv[2];
 const flags = getFlags();
+validateFlag(flags);
 
 function validateId(expenseId) {
     if(!data.some(expense => expense.id === expenseId)){
@@ -29,6 +39,7 @@ function validateId(expenseId) {
         process.exit(1);
     }
 };
+
 
 function getMonthName(monthNum) {
     if (monthNum >= 1 && monthNum <= 12){
