@@ -54,7 +54,7 @@ function getExpense(expenseId) {
     return expense;
 }
 
-if (command === 'add') {
+function addExpense() {
     let dateMade = new Date().toISOString();
     if(flags.description && flags.amount && parseInt(flags.amount) > 0) {
         let expense = {
@@ -71,9 +71,8 @@ if (command === 'add') {
         console.error(`Expense --description or --amount not provided.`);
         process.exit(1);
     }
-};
-
-if (command === 'delete') {
+}
+function deleteExpense() {
     if (flags.id) {
         validateId(parseInt(flags.id));
         data = data.filter(expense => expense.id != parseInt(flags.id));
@@ -84,9 +83,9 @@ if (command === 'delete') {
         console.error(`Expense --id not provided.`);
         process.exit(1);
     }
-};
+}
 
-if (command === 'update') {
+function updateExpense() {
     if (flags.id) {
         validateId(parseInt(flags.id));
         let expense = getExpense(parseInt(flags.id));
@@ -118,7 +117,7 @@ if (command === 'update') {
     }
 }
 
-if (command === 'summary') {
+function summary() {
     let total = 0;
     if ( flags.month ) {
         const monthTotal = data.filter(expense => (new Date(expense.date).getUTCMonth() + 1) === parseInt(flags.month)).reduce((total, curr) => total + parseInt(curr.amount), 0);
@@ -128,12 +127,33 @@ if (command === 'summary') {
         total = data.reduce((total, curr) => total + parseInt(curr.amount), 0);
         console.log(`Total expenses: $${total}.`);
     }
-};
+}
 
-if (command === 'list') { console.table(data) };
+function listExpenses() {
+    console.table(data);
+}
 
-// fallback funct
-if (!validCommands.includes(command)) {
-    console.error('Invalid command.');
-    process.exit(1);
-};
+function main() {
+    switch (command) {
+        case 'add':
+            addExpense();
+            break;
+        case 'delete':
+            deleteExpense();
+            break;
+        case 'update':
+            updateExpense();
+            break;
+        case 'summary':
+            summary();
+            break;
+        case 'list':
+            listExpenses();
+            break;
+        default:
+            console.error('Invalid command.');
+            process.exit(1);
+    }
+}
+
+main();
