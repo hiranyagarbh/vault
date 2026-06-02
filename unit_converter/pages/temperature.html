@@ -1,0 +1,17 @@
+<form action="/temperature" method="post">
+    <label for="value">Value</label>
+    <input type="number" name="value" id="value" required>
+    <label for="from">From</label>
+    <select name="from" id="from">
+        <option value="celsius">Celsius</option>
+        <option value="fahrenheit">Fahrenheit</option>
+        <option value="kelvin">Kelvin</option>
+    </select>
+    <label for="to">To</label>
+    <select name="to" id="to">
+        <option value="celsius">Celsius</option>
+        <option value="fahrenheit">Fahrenheit</option>
+        <option value="kelvin">Kelvin</option>
+    </select>
+    <button type="submit">Convert</button>
+</form>
