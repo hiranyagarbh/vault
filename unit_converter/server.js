@@ -2,6 +2,7 @@ import http from 'node:http';
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import querystring from 'node:querystring';
 
 const port = 3000;
 
@@ -21,9 +22,21 @@ const routes = {
     '/temperature': () => renderPage('temperature.html')
 }
 
-// Placeholder conversion logic
 function convertLength(value, from, to) {
-    return `Converted length: ${value} from ${from} to ${to}`;
+    // foot -> Meters -> Centimeter == convert everythig through meters
+    // res = calue * lengthToMeters[from] / lengthToMeters[to]
+    const lengthToMeters = {
+        millimeter: 0.001,
+        centimeter: 0.01,
+        meter: 1,
+        kilometer: 1000,
+        inch: 0.0254,
+        foot: 0.3048,
+        yard: 0.9144,
+        mile: 1609.344
+    };
+    const res = value * lengthToMeters[from] / lengthToMeters[to];
+    return `Converted length: ${value} from ${from} to ${to}: ${res}`;
 }
 function convertWeight(value, from, to) {
     return `Converted weight: ${value} from ${from} to ${to}`;
@@ -48,8 +61,14 @@ const server = http.createServer(async (req, res) => {
                 body += chunk.toString();
             });
             req.on('end', () => {
+                const parsed = querystring.parse(body);
+                let result = null;
+                if (url === '/length') result = convertLength(parsed.value, parsed.from, parsed.to)
+                if (url === '/weight') result = convertWeight(parsed.value, parsed.from, parsed.to)
+                if (url === '/temperature') result = convertTemperature(parsed.value, parsed.from, parsed.to)
+
                 res.writeHead(200, { 'Content-Type': 'text/html' });
-                res.end(`<html><body><h1>POST successful to ${url}</h1><p>Received body: ${body}</p></body></html>`);
+                res.end(`<html><body><h1>POST successful to ${url}</h1><p>Received body: ${result}</p></body></html>`);
             });
         }
         else {
