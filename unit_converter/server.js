@@ -39,10 +39,52 @@ function convertLength(value, from, to) {
     return `Converted length: ${value} from ${from} to ${to}: ${res}`;
 }
 function convertWeight(value, from, to) {
-    return `Converted weight: ${value} from ${from} to ${to}`;
+    // any -> gram -> any == convert everything through gram
+    const weightToGrams = {
+        milligram: 0.001,
+        gram: 1,
+        kilogram: 1000,
+        ounce: 28.35,
+        pound: 453.59
+    };
+    const res = value * weightToGrams[from] / weightToGrams[to];
+    return `Converted weight: ${value} from ${from} to ${to}: ${res}`;
 }
 function convertTemperature(value, from, to) {
-    return `Converted temperature: ${value} from ${from} to ${to}`;
+    let res = null
+    switch(from) {
+        case 'celsius':
+            switch(to){
+                case 'fahrenheit':
+                    res = (value * 9/5) + 32;
+                    break;
+                case 'kelvin':
+                    res = value + 273.15;
+                    break;
+            }
+            break;
+        case 'fahrenheit':
+            switch(to){
+                case 'celsius':
+                    res = (value - 32) * 5/9;
+                    break;
+                case 'kelvin':
+                    res = (value - 32) * 5/9 + 273.15;
+                    break;
+            }
+            break;
+        case 'kelvin':
+            switch(to){
+                case 'celsius':
+                    res = value - 273.15;
+                    break;
+                case 'fahrenheit':
+                    res = (value - 273.15) * 9/5 + 32;
+                    break;
+            }
+            break;
+    };
+    return `Converted temperature: ${value} from ${from} to ${to}: ${res}`;
 }
 
 const server = http.createServer(async (req, res) => {
