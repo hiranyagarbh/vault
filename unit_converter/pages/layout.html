@@ -4,30 +4,22 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Unit Converter</title>
-    <style>
-        body { font-family: sans-serif; max-width: 600px; margin: 40px auto; padding: 0 20px; }
-        nav { margin-bottom: 20px; }
-        nav a { margin-right: 16px; text-decoration: none; color: #555; }
-        nav a:hover { color: blue; }
-        form { margin-top: 24px; display: flex; flex-direction: column; gap: 12px; }
-        input, select { padding: 8px; font-size: 1rem; border: 1px solid #ccc; border-radius: 4px; }
-        button { padding: 10px; background: blue; color: white; border: none; border-radius: 4px; cursor: pointer; }
-        .result-box { font-size: 24px; font-weight: bold; margin-bottom: 20px; text-align: center; margin-top: 40px;}
-        .center-btn { display: block; margin: 0 auto; }
-    </style>
+    <style>h2,p{margin-bottom:16px}nav a,p{color:#4b5563}body,nav a{background-color:#f3f4f6}body,form,nav{display:flex}h2,label{color:#374151}button,label{font-weight:600}.result-box,h1{margin-bottom:24px}a,nav a{text-decoration:none}body{font-family:'Segoe UI',system-ui,-apple-system,sans-serif;color:#1f2937;justify-content:center;align-items:center;min-height:100vh;padding:20px}.container{background-color:#fff;width:100%;max-width:480px;border-radius:12px;box-shadow:0 10px 15px -3px rgba(0,0,0,.1),0 4px 6px -2px rgba(0,0,0,.05);padding:32px}h1{text-align:center;font-size:1.75rem;color:#111827}.result-box,h2{font-size:1.25rem;text-align:center}label,nav a{font-size:.875rem}p{line-height:1.5;text-align:center}nav{justify-content:center;flex-wrap:wrap;gap:10px;margin-bottom:32px;padding-bottom:24px;border-bottom:1px solid #e5e7eb}nav a{padding:8px 16px;border-radius:9999px;font-weight:500;transition:.2s}nav a:hover{background-color:#e0e7ff;color:#4f46e5}form{flex-direction:column;gap:16px}label{margin-bottom:-8px}input,select{padding:12px;font-size:1rem;border:1px solid #d1d5db;border-radius:8px;background-color:#f9fafb;color:#1f2937;transition:.2s;outline:0}input:focus,select:focus{border-color:#4f46e5;background-color:#fff;box-shadow:0 0 0 3px rgba(79,70,229,.15)}button{margin-top:8px;padding:12px 24px;background-color:#4f46e5;color:#fff;font-size:1rem;border:none;border-radius:8px;cursor:pointer;transition:background-color .2s,transform .1s;width:100%}button:hover{background-color:#4338ca}button:active{transform:translateY(1px)}.result-box{font-weight:700;color:#166534;background-color:#f0fdf4;border:1px solid #bbf7d0;padding:16px;border-radius:8px}</style>
 </head>
 <body>
-    <h1>Unit Converter</h1>
-    
-    <nav>
-        <a href="/">Home</a>
-        <a href="/length">Length</a>
-        <a href="/weight">Weight</a>
-        <a href="/temperature">Temperature</a>
-    </nav>
-    
-    <main>
-        {{content}}
-    </main>
+    <div class="container">
+        <h1>Unit Converter</h1>
+        
+        <nav>
+            <a href="/">Home</a>
+            <a href="/length">Length</a>
+            <a href="/weight">Weight</a>
+            <a href="/temperature">Temperature</a>
+        </nav>
+        
+        <main>
+            {{content}}
+        </main>
+    </div>
 </body>
 </html>
