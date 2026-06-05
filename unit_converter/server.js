@@ -23,68 +23,41 @@ const routes = {
 }
 
 function convertLength(value, from, to) {
-    // foot -> Meters -> Centimeter == convert everythig through meters
-    // res = calue * lengthToMeters[from] / lengthToMeters[to]
     const lengthToMeters = {
-        millimeter: 0.001,
-        centimeter: 0.01,
-        meter: 1,
-        kilometer: 1000,
-        inch: 0.0254,
-        foot: 0.3048,
-        yard: 0.9144,
-        mile: 1609.344
+        millimeter: 0.001, centimeter: 0.01, meter: 1, kilometer: 1000,
+        inch: 0.0254, foot: 0.3048, yard: 0.9144, mile: 1609.344
     };
     const res = value * lengthToMeters[from] / lengthToMeters[to];
-    return `Converted length: ${value} from ${from} to ${to}: ${res}`;
+    // formatted
+    return `${value} ${from} = ${res.toFixed(4)} ${to}`; 
 }
+
 function convertWeight(value, from, to) {
-    // any -> gram -> any == convert everything through gram
     const weightToGrams = {
-        milligram: 0.001,
-        gram: 1,
-        kilogram: 1000,
-        ounce: 28.35,
-        pound: 453.59
+        milligram: 0.001, gram: 1, kilogram: 1000, ounce: 28.35, pound: 453.59
     };
     const res = value * weightToGrams[from] / weightToGrams[to];
-    return `Converted weight: ${value} from ${from} to ${to}: ${res}`;
+    return `${value} ${from} = ${res.toFixed(4)} ${to}`;
 }
+
 function convertTemperature(value, from, to) {
     let res = null
+    if (from === to) res = value;    
     switch(from) {
         case 'celsius':
-            switch(to){
-                case 'fahrenheit':
-                    res = (value * 9/5) + 32;
-                    break;
-                case 'kelvin':
-                    res = value + 273.15;
-                    break;
-            }
+            if(to === 'fahrenheit') res = (value * 9/5) + 32;
+            if(to === 'kelvin') res = value + 273.15;
             break;
         case 'fahrenheit':
-            switch(to){
-                case 'celsius':
-                    res = (value - 32) * 5/9;
-                    break;
-                case 'kelvin':
-                    res = (value - 32) * 5/9 + 273.15;
-                    break;
-            }
+            if(to === 'celsius') res = (value - 32) * 5/9;
+            if(to === 'kelvin') res = (value - 32) * 5/9 + 273.15;
             break;
         case 'kelvin':
-            switch(to){
-                case 'celsius':
-                    res = value - 273.15;
-                    break;
-                case 'fahrenheit':
-                    res = (value - 273.15) * 9/5 + 32;
-                    break;
-            }
+            if(to === 'celsius') res = value - 273.15;
+            if(to === 'fahrenheit') res = (value - 273.15) * 9/5 + 32;
             break;
     };
-    return `Converted temperature: ${value} from ${from} to ${to}: ${res}`;
+    return `${value} ${from} = ${res.toFixed(2)} ${to}`;
 }
 
 const server = http.createServer(async (req, res) => {
@@ -93,7 +66,6 @@ const server = http.createServer(async (req, res) => {
     try {
         if (routes[url] && method === 'GET') {
             const response = await routes[url]();
-
             res.writeHead(200, { 'Content-Type': 'text/html' });
             res.end(response.data);
         }
@@ -102,15 +74,31 @@ const server = http.createServer(async (req, res) => {
             req.on('data', chunk => {
                 body += chunk.toString();
             });
-            req.on('end', () => {
+            
+            // changed req.on to an async to allow await fs.readFile
+            req.on('end', async () => {
                 const parsed = querystring.parse(body);
                 let result = null;
-                if (url === '/length') result = convertLength(parsed.value, parsed.from, parsed.to)
-                if (url === '/weight') result = convertWeight(parsed.value, parsed.from, parsed.to)
-                if (url === '/temperature') result = convertTemperature(parsed.value, parsed.from, parsed.to)
+                
+                // parseFloat so users can enter decimals 
+                if (url === '/length') result = convertLength(parseFloat(parsed.value), parsed.from, parsed.to);
+                if (url === '/weight') result = convertWeight(parseFloat(parsed.value), parsed.from, parsed.to);
+                if (url === '/temperature') result = convertTemperature(parseFloat(parsed.value), parsed.from, parsed.to);
 
-                res.writeHead(200, { 'Content-Type': 'text/html' });
-                res.end(`<html><body><h1>POST successful to ${url}</h1><p>Received body: ${result}</p></body></html>`);
+                try {
+                    // read
+                    const resultPagePath = path.join(__dirname, 'pages', 'result.html');
+                    let resultHtml = await fs.readFile(resultPagePath, 'utf-8');
+                    // replace {{resultText}}
+                    resultHtml = resultHtml.replace('{{resultText}}', result);
+                    
+                    res.writeHead(200, { 'Content-Type': 'text/html' });
+                    res.end(resultHtml);
+                } catch (templateError) {
+                    console.error("Template Error: ", templateError);
+                    res.writeHead(500, { 'Content-Type': 'text/html' });
+                    res.end('<html><body><h1>500 Internal Server Error (Template missing)</h1></body></html>');
+                }
             });
         }
         else {
@@ -122,7 +110,6 @@ const server = http.createServer(async (req, res) => {
         console.error("Server Error: ", error);
         res.writeHead(500, { 'Content-Type': 'text/html' });
         res.end('<html><body><h1>500 Internal Server Error</h1></body></html>');
-        
     }
 });
 
@@ -131,7 +118,6 @@ server.listen(port, () => {
     console.log(`Press Cmd+C to quit the server.`);
 });
 
-// press Q to quit the server
 process.on('SIGINT', () => {
     console.log('\nServer is shutting down...');
     server.close(() => {
