@@ -1,6 +1,8 @@
+<h2>Length Conversion</h2>
 <form action="/length" method="post">
     <label for="value">Value</label>
-    <input type="number" name="value" id="value" required>
+    <input type="number" step="any" name="value" id="value" required>
+    
     <label for="from">From</label>
     <select name="from" id="from">
         <option value="millimeter">Millimeter</option>
@@ -12,6 +14,7 @@
         <option value="yard">Yard</option>
         <option value="mile">Mile</option>
     </select>
+    
     <label for="to">To</label>
     <select name="to" id="to">
         <option value="millimeter">Millimeter</option>
@@ -23,5 +26,6 @@
         <option value="yard">Yard</option>
         <option value="mile">Mile</option>
     </select>
+    
     <button type="submit">Convert</button>
 </form>
