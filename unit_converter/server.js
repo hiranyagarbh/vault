@@ -10,9 +10,13 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const renderPage = async (fileName) => {
-    const filePath = path.join(__dirname, 'pages', fileName);
-    const content = await fs.readFile(filePath, 'utf-8');
-    return { status: 200, data: content };
+    const layoutPath = path.join(__dirname, 'pages', 'layout.html'); //read master layout
+    const layoutContent = await fs.readFile(layoutPath, 'utf-8');
+    const filePath = path.join(__dirname, 'pages', fileName); // read page content
+    const pageContent = await fs.readFile(filePath, 'utf-8');
+    const finalHtml = layoutContent.replace('{{content}}', pageContent); // put page content to {{content}} placeholder
+
+    return { status: 200, data: finalHtml };
 }
 
 const routes = {
@@ -75,25 +79,27 @@ const server = http.createServer(async (req, res) => {
                 body += chunk.toString();
             });
             
-            // changed req.on to an async to allow await fs.readFile
             req.on('end', async () => {
                 const parsed = querystring.parse(body);
                 let result = null;
                 
-                // parseFloat so users can enter decimals 
                 if (url === '/length') result = convertLength(parseFloat(parsed.value), parsed.from, parsed.to);
                 if (url === '/weight') result = convertWeight(parseFloat(parsed.value), parsed.from, parsed.to);
                 if (url === '/temperature') result = convertTemperature(parseFloat(parsed.value), parsed.from, parsed.to);
 
                 try {
-                    // read
+                    const layoutPath = path.join(__dirname, 'pages', 'layout.html');
+                    let layoutContent = await fs.readFile(layoutPath, 'utf-8');
+                    
                     const resultPagePath = path.join(__dirname, 'pages', 'result.html');
                     let resultHtml = await fs.readFile(resultPagePath, 'utf-8');
-                    // replace {{resultText}}
+
                     resultHtml = resultHtml.replace('{{resultText}}', result);
-                    
+                    // inject res page into the master layout
+                    const finalHtml = layoutContent.replace('{{content}}', resultHtml);
+
                     res.writeHead(200, { 'Content-Type': 'text/html' });
-                    res.end(resultHtml);
+                    res.end(finalHtml);
                 } catch (templateError) {
                     console.error("Template Error: ", templateError);
                     res.writeHead(500, { 'Content-Type': 'text/html' });
