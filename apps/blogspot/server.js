@@ -52,10 +52,9 @@ const server = http.createServer(async (req, res) => {
         req.on("end", async () => {
           const parsed = querystring.parse(body);
           const folderPath = path.join(__dirname, "article");
-          const articleLength = await fs.promises
-            .readdir(folderPath)
-            .then((files) => files.length);
-          const newArticleId = articleLength + 1;
+          const files = await fs.promises.readdir(folderPath);
+          const ids = files.map((f) => parseInt(f));
+          const newArticleId = Math.max(...ids) + 1;
           try {
             const newContent = JSON.stringify({
               title: parsed.title,
@@ -139,7 +138,7 @@ const server = http.createServer(async (req, res) => {
         );
         res.writeHead(200, { "Content-Type": "text/html" });
         res.end(JSON.parse(article).body);
-      } else if (pathname === "/edit") {
+      } else if (pathname.startsWith("/edit")) {
         const content = await fs.promises.readFile(
           path.join(__dirname, "pages", "edit.html"),
           "utf-8",
