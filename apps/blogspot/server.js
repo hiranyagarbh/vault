@@ -27,12 +27,12 @@ const renderPage = async (fileName) => {
 };
 
 const routes = {
-  "/": () => renderPage("home.html"),
-  "/article": () => renderPage("article.html"),
-  "/admin": () => renderPage("admin.html"),
-  "/new": () => renderPage("new.html"),
-  "/edit": () => renderPage("edit.html"),
-  "/login": () => renderPage("login.html"),
+  "/": () => renderPage("/"),
+  "/article": () => renderPage("/article"),
+  "/admin": () => renderPage("/admin"),
+  "/new": () => renderPage("/new"),
+  "/edit": () => renderPage("/edit"),
+  "/login": () => renderPage("/login"),
 };
 
 const server = http.createServer(async (req, res) => {
@@ -40,12 +40,7 @@ const server = http.createServer(async (req, res) => {
   const pathId = pathname.split("/")[2];
 
   try {
-    if (routes[pathname]) {
-      const route = routes[pathname];
-      const response = await route(pathId);
-      res.writeHead(response.status, { "Content-Type": "text/html" });
-      res.end(response.data);
-    } else if (pathname === "new" && req.method === "POST") {
+    if (req.method === "POST") {
       let body = "";
       req.on("data", (chunk) => {
         body += chunk;
@@ -53,10 +48,22 @@ const server = http.createServer(async (req, res) => {
       req.on("end", async () => {
         const parsed = querystring.parse(body);
         try {
-          const homePath = path.join(__dirname, "pages", "home.html");
-          const content = await fs.promises.readFile(homePath, "utf-8");
-          res.writeHead(200, { "Content-Type": "text/html" });
-          res.end(content);
+          const content = await fs.promises.readFile(
+            path.join(__dirname, "article", `${pathId}.json`),
+            "utf-8",
+          );
+          const updatedContent = JSON.stringify({
+            title: parsed.title,
+            date: new Date().toISOString(),
+            body: content,
+          });
+          await fs.promises.writeFile(
+            path.join(__dirname, "article", `${pathId}.json`),
+            updatedContent,
+            "utf-8",
+          );
+          res.writeHead(302, { "Content-Type": "text/html", Location: "/" }); // redirect to home
+          res.end();
         } catch (templateError) {
           res.writeHead(500, { "Content-Type": "text/html" });
           res.end(templateError.message);
