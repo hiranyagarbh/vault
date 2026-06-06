@@ -3,10 +3,8 @@ import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import querystring from "node:querystring";
-// import { url } from "node:inspector/promises";
 
 const port = 3000;
-
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
@@ -37,38 +35,107 @@ const routes = {
 
 const server = http.createServer(async (req, res) => {
   const { pathname } = new URL(req.url, `http://${req.headers.host}`);
-  const pathId = pathname.split("/")[2];
+  const { method } = req;
 
   try {
-    if (req.method === "POST") {
-      let body = "";
-      req.on("data", (chunk) => {
-        body += chunk;
-      });
-      req.on("end", async () => {
-        const parsed = querystring.parse(body);
-        try {
-          const content = await fs.promises.readFile(
-            path.join(__dirname, "article", `${pathId}.json`),
-            "utf-8",
-          );
-          const updatedContent = JSON.stringify({
-            title: parsed.title,
-            date: new Date().toISOString(),
-            body: content,
-          });
-          await fs.promises.writeFile(
-            path.join(__dirname, "article", `${pathId}.json`),
-            updatedContent,
-            "utf-8",
-          );
-          res.writeHead(302, { "Content-Type": "text/html", Location: "/" }); // redirect to home
-          res.end();
-        } catch (templateError) {
-          res.writeHead(500, { "Content-Type": "text/html" });
-          res.end(templateError.message);
+    if (routes[pathname] && method === "POST") {
+      // create new article
+      if (pathname === "/new") {
+        // get request body
+        let body = "";
+        req.on("data", (chunk) => {
+          body += chunk;
+        });
+
+        // parse request body and save article
+        req.on("end", async () => {
+          const parsed = querystring.parse(body);
+          const folderPath = path.join(__dirname, "article");
+          const articleLength = await fs.promises
+            .readdir(folderPath)
+            .then((files) => files.length);
+          const newArticleId = articleLength + 1;
+          try {
+            const newContent = JSON.stringify({
+              title: parsed.title,
+              date: new Date().toISOString(),
+              body: parsed.body,
+            });
+            await fs.promises.writeFile(
+              path.join(__dirname, "article", `${newArticleId}.json`),
+              newContent,
+              "utf-8",
+            );
+            res.writeHead(302, {
+              "Content-Type": "text/html",
+              Location: `/article/${newArticleId}`,
+            }); // redirect to home
+            res.end();
+          } catch (e) {
+            res.writeHead(500, { "Content-Type": "text/html" });
+            res.end(e.message);
+          }
+        });
+      }
+
+      // edit article
+      if (pathname === "/edit") {
+        const pathId = req.url.split("/")[2]; // get article ID from URL
+
+        // check if article ID provided
+        if (!pathId) {
+          res.writeHead(400, { "Content-Type": "text/html" });
+          res.end("Article ID is required");
+          return;
         }
-      });
+        // check if article exists
+        try {
+          await fs.promises.access(
+            path.join(__dirname, "article", `${pathId}.json`),
+            fs.constants.F_OK,
+          );
+        } catch (e) {
+          res.writeHead(404, { "Content-Type": "text/html" });
+          res.end("Article not found");
+          return;
+        }
+
+        let body = "";
+        req.on("data", (chunk) => {
+          body += chunk;
+        });
+        req.on("end", async () => {
+          const parsed = querystring.parse(body);
+          try {
+            const updatedContent = JSON.stringify({
+              title: parsed.title,
+              date: new Date().toISOString(),
+              body: parsed.body,
+            });
+            await fs.promises.writeFile(
+              path.join(__dirname, "article", `${pathId}.json`),
+              updatedContent,
+              "utf-8",
+            );
+            // redirect to updated article
+            res.writeHead(302, {
+              "Content-Type": "text/html",
+              Location: `/article/${pathId}`,
+            });
+            res.end();
+          } catch (e) {
+            res.writeHead(500, { "Content-Type": "text/html" });
+            res.end(e.message);
+          }
+        });
+      }
+    } else if (routes[pathname] && method === "GET") {
+      const response = await routes[pathname](req, res);
+      res.writeHead(200, { "Content-Type": "text/html" });
+      res.end(response.data);
+    } else {
+      res.writeHead(404, { "Content-Type": "text/html" });
+      res.end("404 Not found");
     }
   } catch (error) {
     res.writeHead(500, { "Content-Type": "text/html" });
