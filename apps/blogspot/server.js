@@ -36,11 +36,12 @@ const routes = {
 const server = http.createServer(async (req, res) => {
   const { pathname } = new URL(req.url, `http://${req.headers.host}`);
   const { method } = req;
+  const basePath = "/" + pathname.split("/")[1];
 
   try {
-    if (routes[pathname] && method === "POST") {
+    if (method === "POST") {
       // create new article
-      if (pathname === "/new") {
+      if (basePath === "/new") {
         // get request body
         let body = "";
         req.on("data", (chunk) => {
@@ -79,7 +80,7 @@ const server = http.createServer(async (req, res) => {
       }
 
       // edit article
-      if (pathname === "/edit") {
+      if (basePath === "/edit") {
         const pathId = req.url.split("/")[2]; // get article ID from URL
 
         // check if article ID provided
@@ -129,10 +130,30 @@ const server = http.createServer(async (req, res) => {
           }
         });
       }
-    } else if (routes[pathname] && method === "GET") {
-      const response = await routes[pathname](req, res);
-      res.writeHead(200, { "Content-Type": "text/html" });
-      res.end(response.data);
+    } else if (method === "GET") {
+      if (pathname.startsWith("/article/")) {
+        const articleId = pathname.split("/")[2];
+        const article = await fs.promises.readFile(
+          path.join(__dirname, "article", `${articleId}.json`),
+          "utf-8",
+        );
+        res.writeHead(200, { "Content-Type": "text/html" });
+        res.end(JSON.parse(article).body);
+      } else if (pathname === "/edit") {
+        const content = await fs.promises.readFile(
+          path.join(__dirname, "pages", "edit.html"),
+          "utf-8",
+        );
+        res.writeHead(200, { "Content-Type": "text/html" });
+        res.end(content);
+      } else if (routes[pathname]) {
+        const response = await routes[pathname]();
+        res.writeHead(response.status, { "Content-Type": "text/html" });
+        res.end(response.data);
+      } else {
+        res.writeHead(404, { "Content-Type": "text/html" });
+        res.end("404 Not found");
+      }
     } else {
       res.writeHead(404, { "Content-Type": "text/html" });
       res.end("404 Not found");
