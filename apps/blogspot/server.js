@@ -1,5 +1,5 @@
 import http from "node:http";
-import fs from "node:fs";
+import fs from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import querystring from "node:querystring";
@@ -17,7 +17,7 @@ const renderPage = async (fileName) => {
     "/edit": "edit.html",
     "/login": "login.html",
   };
-  const content = await fs.promises.readFile(
+  const content = await fs.readFile(
     path.join(__dirname, "pages", pages[fileName]),
     "utf-8",
   );
@@ -33,6 +33,29 @@ const routes = {
   "/login": () => renderPage("/login"),
 };
 
+// returns an array of article objects: { id, title, date }
+async function getAllArticles(folderPath) {
+  try {
+    const files = await fs.readdir(folderPath);
+    const titlePromises = files.map(async (file) => {
+      const filePath = path.join(folderPath, file);
+      const stats = await fs.stat(filePath);
+      if (stats.isFile()) {
+        const content = await fs.readFile(filePath, "utf-8");
+        const id = path.parse(filePath).name;
+        const { title, date, body } = JSON.parse(content);
+        const shortDate = date.split("T")[0];
+        return { id, title, shortDate, body };
+      }
+      return null;
+    });
+    const res = (await Promise.all(titlePromises)).filter(Boolean);
+    return res;
+  } catch (e) {
+    return e.message;
+  }
+}
+
 const server = http.createServer(async (req, res) => {
   const { pathname } = new URL(req.url, `http://${req.headers.host}`);
   const { method } = req;
@@ -40,28 +63,24 @@ const server = http.createServer(async (req, res) => {
 
   try {
     if (method === "POST") {
-      // create new article
       if (basePath === "/new") {
-        // get request body
         let body = "";
         req.on("data", (chunk) => {
           body += chunk;
         });
-
-        // parse request body and save article
         req.on("end", async () => {
           const parsed = querystring.parse(body);
           const folderPath = path.join(__dirname, "article");
-          const files = await fs.promises.readdir(folderPath);
-          const ids = files.map((f) => parseInt(f));
-          const newArticleId = Math.max(...ids) + 1;
+          const files = await fs.readdir(folderPath);
+          const ids = files.map((f) => parseInt(path.parse(f).name));
+          const newArticleId = ids.length ? Math.max(...ids) + 1 : 1;
           try {
             const newContent = JSON.stringify({
               title: parsed.title,
               date: new Date().toISOString(),
               body: parsed.body,
             });
-            await fs.promises.writeFile(
+            await fs.writeFile(
               path.join(__dirname, "article", `${newArticleId}.json`),
               newContent,
               "utf-8",
@@ -69,7 +88,7 @@ const server = http.createServer(async (req, res) => {
             res.writeHead(302, {
               "Content-Type": "text/html",
               Location: `/article/${newArticleId}`,
-            }); // redirect to home
+            });
             res.end();
           } catch (e) {
             res.writeHead(500, { "Content-Type": "text/html" });
@@ -77,8 +96,6 @@ const server = http.createServer(async (req, res) => {
           }
         });
       }
-
-      // edit article
       if (basePath === "/edit") {
         const pathId = req.url.split("/")[2]; // get article ID from URL
 
@@ -90,9 +107,9 @@ const server = http.createServer(async (req, res) => {
         }
         // check if article exists
         try {
-          await fs.promises.access(
+          fs.readFile(
             path.join(__dirname, "article", `${pathId}.json`),
-            fs.constants.F_OK,
+            "utf-8",
           );
         } catch (e) {
           res.writeHead(404, { "Content-Type": "text/html" });
@@ -112,7 +129,7 @@ const server = http.createServer(async (req, res) => {
               date: new Date().toISOString(),
               body: parsed.body,
             });
-            await fs.promises.writeFile(
+            await fs.writeFile(
               path.join(__dirname, "article", `${pathId}.json`),
               updatedContent,
               "utf-8",
@@ -132,14 +149,14 @@ const server = http.createServer(async (req, res) => {
     } else if (method === "GET") {
       if (pathname.startsWith("/article/")) {
         const articleId = pathname.split("/")[2];
-        const article = await fs.promises.readFile(
+        const article = await fs.readFile(
           path.join(__dirname, "article", `${articleId}.json`),
           "utf-8",
         );
         res.writeHead(200, { "Content-Type": "text/html" });
         res.end(JSON.parse(article).body);
       } else if (pathname.startsWith("/edit")) {
-        const content = await fs.promises.readFile(
+        const content = await fs.readFile(
           path.join(__dirname, "pages", "edit.html"),
           "utf-8",
         );
@@ -147,6 +164,13 @@ const server = http.createServer(async (req, res) => {
         res.end(content);
       } else if (routes[pathname]) {
         const response = await routes[pathname]();
+        if (pathname === "/") {
+          const articles = await getAllArticles(
+            path.join(__dirname, "article"),
+          );
+          const listHTML = articles.map((a) => `<p>${a.title}</p>`).join("");
+          response.data = response.data.replace("{{ARTICLE_LIST}}", listHTML);
+        }
         res.writeHead(response.status, { "Content-Type": "text/html" });
         res.end(response.data);
       } else {
