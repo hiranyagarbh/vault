@@ -52,7 +52,7 @@ async function getAllArticles(folderPath) {
     const res = (await Promise.all(titlePromises)).filter(Boolean);
     return res;
   } catch (e) {
-    return e.message;
+    return [];
   }
 }
 
@@ -118,7 +118,7 @@ const server = http.createServer(async (req, res) => {
         }
         // check if article exists
         try {
-          fs.readFile(
+          await fs.readFile(
             path.join(__dirname, "article", `${pathId}.json`),
             "utf-8",
           );
@@ -175,12 +175,12 @@ const server = http.createServer(async (req, res) => {
       }
     } else if (method === "GET") {
       if (pathname.startsWith("/article/")) {
+        const articleId = pathname.split("/")[2];
         if (!articleId) {
           res.writeHead(400, { "Content-Type": "text/html" });
           res.end("Article ID required");
           return;
         }
-        const articleId = pathname.split("/")[2];
 
         const template = await fs.readFile(
           path.join(__dirname, "pages", "article.html"),
@@ -200,12 +200,13 @@ const server = http.createServer(async (req, res) => {
         res.writeHead(200, { "Content-Type": "text/html" });
         res.end(htmlOutput);
       } else if (pathname.startsWith("/edit")) {
+        const articleId = pathname.split("/")[2];
+
         if (!articleId) {
           res.writeHead(400, { "Content-Type": "text/html" });
           res.end("Article ID required");
           return;
         }
-        const articleId = pathname.split("/")[2];
 
         const template = await fs.readFile(
           path.join(__dirname, "pages", "edit.html"),
