@@ -175,13 +175,19 @@ const server = http.createServer(async (req, res) => {
       }
     } else if (method === "GET") {
       if (pathname.startsWith("/article/")) {
+        if (!articleId) {
+          res.writeHead(400, { "Content-Type": "text/html" });
+          res.end("Article ID required");
+          return;
+        }
         const articleId = pathname.split("/")[2];
-        const articleRaw = await fs.readFile(
-          path.join(__dirname, "article", `${articleId}.json`),
-          "utf-8",
-        );
+
         const template = await fs.readFile(
           path.join(__dirname, "pages", "article.html"),
+          "utf-8",
+        );
+        const articleRaw = await fs.readFile(
+          path.join(__dirname, "article", `${articleId}.json`),
           "utf-8",
         );
         const articleData = JSON.parse(articleRaw);
@@ -193,14 +199,31 @@ const server = http.createServer(async (req, res) => {
 
         res.writeHead(200, { "Content-Type": "text/html" });
         res.end(htmlOutput);
-        // res.end(titl: JSON.parse(article).title = );
       } else if (pathname.startsWith("/edit")) {
-        const content = await fs.readFile(
+        if (!articleId) {
+          res.writeHead(400, { "Content-Type": "text/html" });
+          res.end("Article ID required");
+          return;
+        }
+        const articleId = pathname.split("/")[2];
+
+        const template = await fs.readFile(
           path.join(__dirname, "pages", "edit.html"),
           "utf-8",
         );
+        const articleRaw = await fs.readFile(
+          path.join(__dirname, "article", `${articleId}.json`),
+          "utf-8",
+        );
+        const articleData = JSON.parse(articleRaw);
+        const shortDate = articleData.date.split("T")[0];
+        const htmlOutput = template
+          .replace("{{ID}}", articleId)
+          .replace("{{TITLE}}", articleData.title)
+          .replace("{{DATE}}", shortDate)
+          .replace("{{BODY}}", articleData.body);
         res.writeHead(200, { "Content-Type": "text/html" });
-        res.end(content);
+        res.end(htmlOutput);
       } else if (routes[pathname]) {
         const response = await routes[pathname]();
         if (pathname === "/") {
