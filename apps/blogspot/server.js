@@ -56,6 +56,17 @@ async function getAllArticles(folderPath) {
   }
 }
 
+async function deleteArticle(filePath) {
+  try {
+    await fs.unlink(filePath);
+    console.log("Deleted article:", filePath);
+    return true;
+  } catch (e) {
+    console.error("Failed to delete article:", e);
+    return false;
+  }
+}
+
 const server = http.createServer(async (req, res) => {
   const { pathname } = new URL(req.url, `http://${req.headers.host}`);
   const { method } = req;
@@ -146,6 +157,22 @@ const server = http.createServer(async (req, res) => {
           }
         });
       }
+      if (basePath === "/delete") {
+        const articleId = pathname.split("/")[2];
+        const deleted = await deleteArticle(
+          path.join(__dirname, "article", `${articleId}.json`),
+        );
+        if (deleted) {
+          res.writeHead(302, {
+            "Content-Type": "text/html",
+            Location: "/admin",
+          });
+          res.end();
+        } else {
+          res.writeHead(500, { "Content-Type": "text/html" });
+          res.end("Failed to delete article. ");
+        }
+      }
     } else if (method === "GET") {
       if (pathname.startsWith("/article/")) {
         const articleId = pathname.split("/")[2];
@@ -169,6 +196,22 @@ const server = http.createServer(async (req, res) => {
             path.join(__dirname, "article"),
           );
           const listHTML = articles.map((a) => `<p>${a.title}</p>`).join("");
+          response.data = response.data.replace("{{ARTICLE_LIST}}", listHTML);
+        }
+        if (pathname === "/admin") {
+          const articles = await getAllArticles(
+            path.join(__dirname, "article"),
+          );
+          const listHTML = articles
+            .map(
+              (a) => `
+            <tr>
+              <td>${a.title}</td>
+              <td><a href="/edit/${a.id}">Edit</a> | <form method="POST" action="/delete/${a.id}"><button type="submit">Delete</button></form></td>
+            </tr>
+          `,
+            )
+            .join("");
           response.data = response.data.replace("{{ARTICLE_LIST}}", listHTML);
         }
         res.writeHead(response.status, { "Content-Type": "text/html" });
