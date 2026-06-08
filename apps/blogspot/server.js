@@ -230,7 +230,12 @@ const server = http.createServer(async (req, res) => {
           const articles = await getAllArticles(
             path.join(__dirname, "article"),
           );
-          const listHTML = articles.map((a) => `<p>${a.title}</p>`).join("");
+          const listHTML = articles
+            .map(
+              (a) =>
+                `<li><a href="/article/${a.id}">${a.title}</a> — ${a.shortDate}</li>`,
+            )
+            .join("");
           response.data = response.data.replace("{{ARTICLE_LIST}}", listHTML);
         }
         if (pathname === "/admin") {
