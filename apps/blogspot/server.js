@@ -3,41 +3,14 @@ import fs from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import querystring from "node:querystring";
-import crypto from "node:crypto";
+import { getAllArticles, getArticle, createArticle, updateArticle, deleteArticle } from "./articles.js";
+import { renderPage, buildPage, buildHomeList, buildAdminList } from "./template.js";
+import { createSession, deleteSession, isAuthenticated, protectedRoutes } from "./auth.js";
 
 const port = process.env.PORT || 8000;
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 await fs.mkdir(path.join(__dirname, "article"), { recursive: true });
-
-let sessionToken = null;
-const protectedRoutes = ["/admin", "/new", "/edit", "/delete"];
-
-const renderPage = async (fileName) => {
-  const pages = {
-    "/": "home.html",
-    "/article": "article.html",
-    "/admin": "admin.html",
-    "/new": "new.html",
-    "/edit": "edit.html",
-    "/login": "login.html",
-  };
-  const content = await fs.readFile(
-    path.join(__dirname, "pages", pages[fileName]),
-    "utf-8",
-  );
-  return { status: 200, data: content };
-};
-
-function isAuthenticated(req) {
-  const sessionCookie = req.headers.cookie;
-  if (!sessionCookie) {
-    return false;
-  }
-  const cookies = Object.fromEntries(sessionCookie.split("; ").map((cookie) => cookie.split("=", 2)));
-  return cookies.sessionToken === sessionToken;
-};
-
 
 const routes = {
   "/": () => renderPage("/"),
@@ -48,42 +21,12 @@ const routes = {
   "/login": () => renderPage("/login"),
 };
 
-async function getAllArticles(folderPath) {
-  try {
-    const files = await fs.readdir(folderPath);
-    const titlePromises = files.map(async (file) => {
-      const filePath = path.join(folderPath, file);
-      const stats = await fs.stat(filePath);
-      if (stats.isFile()) {
-        const content = await fs.readFile(filePath, "utf-8");
-        const id = path.parse(filePath).name;
-        const { title, createdAt } = JSON.parse(content);
-        const shortDate = createdAt.split("T")[0];
-        return { id, title, shortDate };
-      }
-      return null;
-    });
-    const res = (await Promise.all(titlePromises)).filter(Boolean);
-    return res;
-  } catch (e) {
-    return [];
-  }
-}
-
-async function deleteArticle(filePath) {
-  try {
-    await fs.unlink(filePath);
-    return true;
-  } catch (e) {
-    console.error("Failed to delete article:", e);
-    return false;
-  }
-}
 
 const server = http.createServer(async (req, res) => {
   const { pathname } = new URL(req.url, `http://${req.headers.host}`);
   const { method } = req;
   const basePath = "/" + pathname.split("/")[1];
+  const folderPath = path.join(__dirname, "article");
 
   if (protectedRoutes.some((route) => pathname.startsWith(route)) && !isAuthenticated(req)) {
     res.writeHead(302, {
@@ -104,7 +47,7 @@ const server = http.createServer(async (req, res) => {
         req.on("end", async () => {
           const parsed = querystring.parse(body);
           if (parsed.username === process.env.ADMIN_USERNAME && parsed.password === process.env.ADMIN_PASSWORD) {
-            sessionToken = crypto.randomUUID();
+            const sessionToken = createSession();
             res.writeHead(302, {
               "Content-Type": "text/html",
               Location: "/admin",
@@ -124,75 +67,39 @@ const server = http.createServer(async (req, res) => {
         });
         req.on("end", async () => {
           const parsed = querystring.parse(body);
-          const folderPath = path.join(__dirname, "article");
-          const files = await fs.readdir(folderPath);
-          const ids = files.map((f) => parseInt(path.parse(f).name));
-          const newArticleId = ids.length ? Math.max(...ids) + 1 : 1;
-          try {
-            const newContent = JSON.stringify({
-              title: parsed.title,
-              body: parsed.body,
-              createdAt: new Date().toISOString(),
-              updatedAt: new Date().toISOString(),
-            });
-            await fs.writeFile(
-              path.join(__dirname, "article", `${newArticleId}.json`),
-              newContent,
-              "utf-8",
-            );
-            res.writeHead(302, {
-              "Content-Type": "text/html",
-              Location: `/article/${newArticleId}`,
-            });
-            res.end();
-          } catch (e) {
-            res.writeHead(500, { "Content-Type": "text/html" });
-            res.end(e.message);
-          }
+          const newArticleId = await createArticle(folderPath, parsed);
+          res.writeHead(302, {
+            "Content-Type": "text/html",
+            Location: `/article/${newArticleId}`,
+          });
+          res.end();
         });
       }
       else if (basePath === "/edit") {
         const pathId = pathname.split("/")[2];
-        let existingContent;
         if (!pathId) {
           res.writeHead(400, { "Content-Type": "text/html" });
           res.end("Article ID is required");
           return;
         }
-        try {
-          existingContent = await fs.readFile(path.join(__dirname, "article", `${pathId}.json`), "utf-8");
-        } catch (e) {
+        const existingContent = await getArticle(folderPath, pathId);
+        if (!existingContent) {
           res.writeHead(404, { "Content-Type": "text/html" });
           res.end("Article not found");
           return;
         }
-
         let body = "";
         req.on("data", (chunk) => { body += chunk; });
         req.on("end", async () => {
           const parsed = querystring.parse(body);
-          try {
-            const existingContentData = JSON.parse(existingContent);
-            const updatedContent = JSON.stringify({
-              title: parsed.title,
-              body: parsed.body,
-              createdAt: existingContentData.createdAt,
-              updatedAt: new Date().toISOString(),
-            });
-            await fs.writeFile(path.join(__dirname, "article", `${pathId}.json`), updatedContent, "utf-8");
-            res.writeHead(302, { "Content-Type": "text/html", Location: `/article/${pathId}` });
-            res.end();
-          } catch (e) {
-            res.writeHead(500, { "Content-Type": "text/html" });
-            res.end(e.message);
-          }
+          await updateArticle(folderPath, pathId, parsed);
+          res.writeHead(302, { "Content-Type": "text/html", Location: `/article/${pathId}` });
+          res.end();
         });
       }
       else if (basePath === "/delete") {
         const articleId = pathname.split("/")[2];
-        const deleted = await deleteArticle(
-          path.join(__dirname, "article", `${articleId}.json`),
-        );
+        const deleted = await deleteArticle(folderPath, articleId);
         if (deleted) {
           res.writeHead(302, {
             "Content-Type": "text/html",
@@ -213,56 +120,40 @@ const server = http.createServer(async (req, res) => {
           return;
         }
 
-        const template = await fs.readFile(path.join(__dirname, "pages", "article.html"), "utf-8");
-        const articleRaw = await fs.readFile(path.join(__dirname, "article", `${articleId}.json`), "utf-8");
-        const articleData = JSON.parse(articleRaw);
-        const shortDate = articleData.createdAt.split("T")[0];
-        const htmlOutput = template
-          .replace(/{{TITLE}}/g, articleData.title)
-          .replace("{{DATE}}", shortDate)
-          .replace("{{BODY}}", articleData.body);
-
+        const template = await renderPage("/article")
         res.writeHead(200, { "Content-Type": "text/html" });
-        res.end(htmlOutput);
+        res.end(buildPage(template, await getArticle(folderPath, articleId)));
       }
       else if (pathname.startsWith("/edit")) {
         const articleId = pathname.split("/")[2];
-
         if (!articleId) {
           res.writeHead(400, { "Content-Type": "text/html" });
           res.end("Article ID required");
           return;
         }
 
-        const template = await fs.readFile(path.join(__dirname, "pages", "edit.html"), "utf-8");
-        const articleRaw = await fs.readFile(path.join(__dirname, "article", `${articleId}.json`), "utf-8");
-        const articleData = JSON.parse(articleRaw);
-        const htmlOutput = template
-          .replace("{{ID}}", articleId)
-          .replace("{{TITLE}}", articleData.title)
-          .replace("{{BODY}}", articleData.body);
+        const template = await renderPage("/edit")
         res.writeHead(200, { "Content-Type": "text/html" });
-        res.end(htmlOutput);
+        res.end(buildPage(template, await getArticle(folderPath, articleId)));
       }
       else if (routes[pathname]) {
-        const response = await routes[pathname]();
+        const content = await routes[pathname]();
+        res.writeHead(200, { "Content-Type": "text/html" })
         if (pathname === "/") {
-          const articles = await getAllArticles(path.join(__dirname, "article"));
+          const articles = await getAllArticles(folderPath);
           articles.sort((a, b) => b.shortDate > a.shortDate ? 1 : -1);
-          const listHTML = articles.map((a) => `<li><a href="/article/${a.id}">${a.title}</a> — ${a.shortDate}</li>`).join("");
-          response.data = response.data.replace("{{ARTICLE_LIST}}", listHTML);
+          res.end(content.replace("{{ARTICLE_LIST}}", buildHomeList(articles)))
         }
-        if (pathname === "/admin") {
-          const articles = await getAllArticles(path.join(__dirname, "article"));
-          const listHTML = articles.map((a) => `<tr><td>${a.title}</td><td><a href="/edit/${a.id}">Edit</a> | <form method="POST" action="/delete/${a.id}"><button type="submit">Delete</button></form></td></tr>`).join("");
-          response.data = response.data.replace("{{ARTICLE_LIST}}", listHTML);
+        else if (pathname === "/admin") {
+          const articles = await getAllArticles(folderPath);
+          res.end(content.replace("{{ARTICLE_LIST}}", buildAdminList(articles)))
         }
-
-        res.writeHead(response.status, { "Content-Type": "text/html" });
-        res.end(response.data);
+        else {
+          res.end(content);
+        }
       }
       else if (basePath == '/logout') {
-        sessionToken = null; //  clear server-side token
+        deleteSession();
         res.writeHead(302, {
           "Content-Type": "text/html",
           Location: "/login",
