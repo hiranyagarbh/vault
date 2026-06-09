@@ -8,8 +8,11 @@ import crypto from "node:crypto";
 const port = process.env.PORT || 8000;
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
+await fs.mkdir(path.join(__dirname, "article"), { recursive: true });
 
 let sessionToken = null;
+const protectedRoutes = ["/admin", "/new", "/edit", "/delete"];
+
 const renderPage = async (fileName) => {
   const pages = {
     "/": "home.html",
@@ -35,7 +38,6 @@ function isAuthenticated(req) {
   return cookies.sessionToken === sessionToken;
 };
 
-const protectedRoutes = ["/admin", "/new", "/edit", "/delete"];
 
 const routes = {
   "/": () => renderPage("/"),
@@ -46,8 +48,6 @@ const routes = {
   "/login": () => renderPage("/login"),
 };
 
-
-// returns an array of article objects: { id, title, date }
 async function getAllArticles(folderPath) {
   try {
     const files = await fs.readdir(folderPath);
@@ -57,8 +57,8 @@ async function getAllArticles(folderPath) {
       if (stats.isFile()) {
         const content = await fs.readFile(filePath, "utf-8");
         const id = path.parse(filePath).name;
-        const { title, date, body } = JSON.parse(content);
-        const shortDate = date.split("T")[0];
+        const { title, createdAt } = JSON.parse(content);
+        const shortDate = createdAt.split("T")[0];
         return { id, title, shortDate };
       }
       return null;
@@ -73,7 +73,6 @@ async function getAllArticles(folderPath) {
 async function deleteArticle(filePath) {
   try {
     await fs.unlink(filePath);
-    console.log("Deleted article:", filePath);
     return true;
   } catch (e) {
     console.error("Failed to delete article:", e);
@@ -132,8 +131,9 @@ const server = http.createServer(async (req, res) => {
           try {
             const newContent = JSON.stringify({
               title: parsed.title,
-              date: new Date().toISOString(),
               body: parsed.body,
+              createdAt: new Date().toISOString(),
+              updatedAt: new Date().toISOString(),
             });
             await fs.writeFile(
               path.join(__dirname, "article", `${newArticleId}.json`),
@@ -153,17 +153,14 @@ const server = http.createServer(async (req, res) => {
       }
       else if (basePath === "/edit") {
         const pathId = pathname.split("/")[2];
+        let existingContent;
         if (!pathId) {
           res.writeHead(400, { "Content-Type": "text/html" });
           res.end("Article ID is required");
           return;
         }
-        // check if article exists
         try {
-          await fs.readFile(
-            path.join(__dirname, "article", `${pathId}.json`),
-            "utf-8",
-          );
+          existingContent = await fs.readFile(path.join(__dirname, "article", `${pathId}.json`), "utf-8");
         } catch (e) {
           res.writeHead(404, { "Content-Type": "text/html" });
           res.end("Article not found");
@@ -171,27 +168,19 @@ const server = http.createServer(async (req, res) => {
         }
 
         let body = "";
-        req.on("data", (chunk) => {
-          body += chunk;
-        });
+        req.on("data", (chunk) => { body += chunk; });
         req.on("end", async () => {
           const parsed = querystring.parse(body);
           try {
+            const existingContentData = JSON.parse(existingContent);
             const updatedContent = JSON.stringify({
               title: parsed.title,
-              date: new Date().toISOString(),
               body: parsed.body,
+              createdAt: existingContentData.createdAt,
+              updatedAt: new Date().toISOString(),
             });
-            await fs.writeFile(
-              path.join(__dirname, "article", `${pathId}.json`),
-              updatedContent,
-              "utf-8",
-            );
-            // redirect to updated article
-            res.writeHead(302, {
-              "Content-Type": "text/html",
-              Location: `/article/${pathId}`,
-            });
+            await fs.writeFile(path.join(__dirname, "article", `${pathId}.json`), updatedContent, "utf-8");
+            res.writeHead(302, { "Content-Type": "text/html", Location: `/article/${pathId}` });
             res.end();
           } catch (e) {
             res.writeHead(500, { "Content-Type": "text/html" });
@@ -224,16 +213,10 @@ const server = http.createServer(async (req, res) => {
           return;
         }
 
-        const template = await fs.readFile(
-          path.join(__dirname, "pages", "article.html"),
-          "utf-8",
-        );
-        const articleRaw = await fs.readFile(
-          path.join(__dirname, "article", `${articleId}.json`),
-          "utf-8",
-        );
+        const template = await fs.readFile(path.join(__dirname, "pages", "article.html"), "utf-8");
+        const articleRaw = await fs.readFile(path.join(__dirname, "article", `${articleId}.json`), "utf-8");
         const articleData = JSON.parse(articleRaw);
-        const shortDate = articleData.date.split("T")[0];
+        const shortDate = articleData.createdAt.split("T")[0];
         const htmlOutput = template
           .replace(/{{TITLE}}/g, articleData.title)
           .replace("{{DATE}}", shortDate)
@@ -241,7 +224,8 @@ const server = http.createServer(async (req, res) => {
 
         res.writeHead(200, { "Content-Type": "text/html" });
         res.end(htmlOutput);
-      } else if (pathname.startsWith("/edit")) {
+      }
+      else if (pathname.startsWith("/edit")) {
         const articleId = pathname.split("/")[2];
 
         if (!articleId) {
@@ -250,64 +234,43 @@ const server = http.createServer(async (req, res) => {
           return;
         }
 
-        const template = await fs.readFile(
-          path.join(__dirname, "pages", "edit.html"),
-          "utf-8",
-        );
-        const articleRaw = await fs.readFile(
-          path.join(__dirname, "article", `${articleId}.json`),
-          "utf-8",
-        );
+        const template = await fs.readFile(path.join(__dirname, "pages", "edit.html"), "utf-8");
+        const articleRaw = await fs.readFile(path.join(__dirname, "article", `${articleId}.json`), "utf-8");
         const articleData = JSON.parse(articleRaw);
-        const shortDate = articleData.date.split("T")[0];
         const htmlOutput = template
           .replace("{{ID}}", articleId)
           .replace("{{TITLE}}", articleData.title)
-          .replace("{{DATE}}", shortDate)
           .replace("{{BODY}}", articleData.body);
         res.writeHead(200, { "Content-Type": "text/html" });
         res.end(htmlOutput);
-      } else if (routes[pathname]) {
+      }
+      else if (routes[pathname]) {
         const response = await routes[pathname]();
         if (pathname === "/") {
-          const articles = await getAllArticles(
-            path.join(__dirname, "article"),
-          );
-          const listHTML = articles
-            .map(
-              (a) =>
-                `<li><a href="/article/${a.id}">${a.title}</a> — ${a.shortDate}</li>`,
-            )
-            .join("");
+          const articles = await getAllArticles(path.join(__dirname, "article"));
+          articles.sort((a, b) => b.shortDate > a.shortDate ? 1 : -1);
+          const listHTML = articles.map((a) => `<li><a href="/article/${a.id}">${a.title}</a> — ${a.shortDate}</li>`).join("");
           response.data = response.data.replace("{{ARTICLE_LIST}}", listHTML);
         }
         if (pathname === "/admin") {
-          const articles = await getAllArticles(
-            path.join(__dirname, "article"),
-          );
-          const listHTML = articles
-            .map(
-              (a) => `
-            <tr>
-              <td>${a.title}</td>
-              <td><a href="/edit/${a.id}">Edit</a> | <form method="POST" action="/delete/${a.id}"><button type="submit">Delete</button></form></td>
-            </tr>
-          `,
-            )
-            .join("");
+          const articles = await getAllArticles(path.join(__dirname, "article"));
+          const listHTML = articles.map((a) => `<tr><td>${a.title}</td><td><a href="/edit/${a.id}">Edit</a> | <form method="POST" action="/delete/${a.id}"><button type="submit">Delete</button></form></td></tr>`).join("");
           response.data = response.data.replace("{{ARTICLE_LIST}}", listHTML);
         }
 
         res.writeHead(response.status, { "Content-Type": "text/html" });
         res.end(response.data);
-      } else if (basePath == '/logout') {
+      }
+      else if (basePath == '/logout') {
+        sessionToken = null; //  clear server-side token
         res.writeHead(302, {
           "Content-Type": "text/html",
           Location: "/login",
-          "Set-Cookie": `sessionToken="sessionToken=; Max-Age=0"; HttpOnly`
+          "Set-Cookie": "sessionToken=; Max-Age=0; HttpOnly"
         });
         res.end();
-      } else {
+      }
+      else {
         res.writeHead(404, { "Content-Type": "text/html" });
         res.end("404 Not found");
       }
