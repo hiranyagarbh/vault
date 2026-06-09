@@ -3,11 +3,13 @@ import fs from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import querystring from "node:querystring";
+import crypto from "node:crypto";
 
-const port = 3000;
+const port = process.env.PORT || 8000;
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
+let sessionToken = null;
 const renderPage = async (fileName) => {
   const pages = {
     "/": "home.html",
@@ -74,6 +76,27 @@ const server = http.createServer(async (req, res) => {
 
   try {
     if (method === "POST") {
+      if (basePath === '/login') {
+        let body = "";
+        req.on("data", (chunk) => {
+          body += chunk;
+        });
+        req.on("end", async () => {
+          const parsed = querystring.parse(body);
+          if (parsed.username === process.env.ADMIN_USERNAME && parsed.password === process.env.ADMIN_PASSWORD) {
+            sessionToken = crypto.randomUUID();
+            res.writeHead(302, {
+              "Content-Type": "text/html",
+              Location: "/admin",
+              "Set-Cookie": `sessionToken=${sessionToken}; HttpOnly`
+            });
+            res.end();
+          } else {
+            res.writeHead(302, { "Content-Type": "text/html", Location: '/login?error=1' });
+            res.end("Invalid credentials");
+          }
+        });
+      }
       if (basePath === "/new") {
         let body = "";
         req.on("data", (chunk) => {
