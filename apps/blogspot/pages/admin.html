@@ -1,10 +1,21 @@
-<table>
-    <tr>
-        <th>Title</th>
-        <th>Actions</th>
-    </tr>
-    {{ARTICLE_LIST}}
-</table>
-<form method="POST" action="/logout" style="display: inline;">
-    <button type="submit">Logout</button>
-</form>
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>Admin</title>
+</head>
+
+<body>
+    <table>
+        <tr>
+            <th>Title</th>
+            <th>Actions</th>
+        </tr>
+        {{ARTICLE_LIST}}
+    </table>
+    <form method="GET" action="/logout" style="display: inline;">
+        <button type="submit">Logout</button>
+    </form>
+</body>
+
+</html>
