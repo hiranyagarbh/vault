@@ -26,6 +26,17 @@ const renderPage = async (fileName) => {
   return { status: 200, data: content };
 };
 
+function isAuthenticated(req) {
+  const sessionCookie = req.headers.cookie;
+  if (!sessionCookie) {
+    return false;
+  }
+  const cookies = Object.fromEntries(sessionCookie.split("; ").map((cookie) => cookie.split("=", 2)));
+  return cookies.sessionToken === sessionToken;
+};
+
+const protectedRoutes = ["/admin", "/new", "/edit", "/delete"];
+
 const routes = {
   "/": () => renderPage("/"),
   "/article": () => renderPage("/article"),
@@ -34,6 +45,7 @@ const routes = {
   "/edit": () => renderPage("/edit"),
   "/login": () => renderPage("/login"),
 };
+
 
 // returns an array of article objects: { id, title, date }
 async function getAllArticles(folderPath) {
@@ -47,7 +59,7 @@ async function getAllArticles(folderPath) {
         const id = path.parse(filePath).name;
         const { title, date, body } = JSON.parse(content);
         const shortDate = date.split("T")[0];
-        return { id, title, shortDate, body };
+        return { id, title, shortDate };
       }
       return null;
     });
@@ -74,6 +86,15 @@ const server = http.createServer(async (req, res) => {
   const { method } = req;
   const basePath = "/" + pathname.split("/")[1];
 
+  if (protectedRoutes.some((route) => pathname.startsWith(route)) && !isAuthenticated(req)) {
+    res.writeHead(302, {
+      "Content-Type": "text/html",
+      Location: "/login",
+    });
+    res.end();
+    return;
+  }
+
   try {
     if (method === "POST") {
       if (basePath === '/login') {
@@ -93,11 +114,11 @@ const server = http.createServer(async (req, res) => {
             res.end();
           } else {
             res.writeHead(302, { "Content-Type": "text/html", Location: '/login?error=1' });
-            res.end("Invalid credentials");
+            res.end();
           }
         });
       }
-      if (basePath === "/new") {
+      else if (basePath === "/new") {
         let body = "";
         req.on("data", (chunk) => {
           body += chunk;
@@ -130,10 +151,8 @@ const server = http.createServer(async (req, res) => {
           }
         });
       }
-      if (basePath === "/edit") {
-        const pathId = req.url.split("/")[2]; // get article ID from URL
-
-        // check if article ID provided
+      else if (basePath === "/edit") {
+        const pathId = pathname.split("/")[2];
         if (!pathId) {
           res.writeHead(400, { "Content-Type": "text/html" });
           res.end("Article ID is required");
@@ -180,7 +199,7 @@ const server = http.createServer(async (req, res) => {
           }
         });
       }
-      if (basePath === "/delete") {
+      else if (basePath === "/delete") {
         const articleId = pathname.split("/")[2];
         const deleted = await deleteArticle(
           path.join(__dirname, "article", `${articleId}.json`),
@@ -281,6 +300,13 @@ const server = http.createServer(async (req, res) => {
 
         res.writeHead(response.status, { "Content-Type": "text/html" });
         res.end(response.data);
+      } else if (basePath == '/logout') {
+        res.writeHead(302, {
+          "Content-Type": "text/html",
+          Location: "/login",
+          "Set-Cookie": `sessionToken="sessionToken=; Max-Age=0"; HttpOnly`
+        });
+        res.end();
       } else {
         res.writeHead(404, { "Content-Type": "text/html" });
         res.end("404 Not found");
