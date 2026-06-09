@@ -322,6 +322,24 @@ const server = http.createServer(async (req, res) => {
 });
 
 server.listen(port, () => {
-  console.log(`Server is running on port ${port}: http://localhost:${port}`);
-  console.log(`Press Cmd+C to quit the server.`);
+  console.log(`\n  🚀 Server running at \x1b[36mhttp://localhost:${port}\x1b[0m`);
+  console.log(`  Press \x1b[33mCtrl+C\x1b[0m to stop\n`);
+});
+
+server.on("error", (err) => {
+  if (err.code === "EADDRINUSE") {
+    console.error(`\n  ❌ Port ${port} already in use. Try another port:\n     PORT=8001 node server.js\n`);
+  } else {
+    console.error(`\n  ❌ Server error: ${err.message}\n`);
+  }
+  process.exit(1);
+});
+
+process.on("SIGINT", () => {
+  console.log(`\n  👋 Shutting down...\n`);
+  server.close(() => process.exit(0));
+});
+
+process.on("SIGTERM", () => {
+  server.close(() => process.exit(0));
 });
