@@ -1,3 +1,38 @@
+# OS
 .DS_Store
+Thumbs.db
+
+# editors
 .vscode/
+.idea/
+*.swp
+*.swo
+
+# skills
 skills/
+
+# node
+node_modules/
+package-lock.json
+
+# env / secrets
+.env
+.env.local
+.env.*.local
+
+# logs
+*.log
+npm-debug.log*
+
+# build / dist
+dist/
+build/
+out/
+
+# test / coverage
+coverage/
+
+# db files
+*.db
+*.sqlite
+*.sqlite3
