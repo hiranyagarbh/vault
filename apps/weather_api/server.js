@@ -1,7 +1,8 @@
 import express from "express";
 import "dotenv/config";
-import { getCached, setCached } from "./services/cacheService.js";
 import rateLimiter from "./middleware/rateLimiter.js";
+import { getCached, setCached } from "./services/cacheService.js";
+import { fetchWeather } from "./services/weatherService.js";
 import requestLogger from "./middleware/requestLogger.js";
 
 const app = express();
@@ -19,27 +20,11 @@ app.get("/api/weather", async (req, res) => {
 
     if (cachedData) { return res.json({ ...cachedData, cached: true }); }
 
-    try {
-        const response = await fetch(`${process.env.WEATHER_API_BASE_URL}/${city}?key=${process.env.WEATHER_API_KEY}&unitGroup=metric&include=current`);
-        if (response.status === 400) { return res.status(404).json({ error: "404 - city not found" }); }
-        else if (!response.ok) { return res.status(500).json({ error: "Weather service is unavailable" }); }
+    const weather = await fetchWeather(city);
+    if (weather.error) { return res.status(weather.status).json({ error: weather.error }); }
 
-        const data = await response.json();
-        const weather = {
-            city: city,
-            temperature: data.currentConditions.temp,
-            humidity: data.currentConditions.humidity,
-            conditions: data.currentConditions.conditions,
-            wind_speed: data.currentConditions.windspeed,
-            cached: false
-        };
-
-        await setCached(cachedKey, weather);
-        res.json(weather);
-    } catch (error) {
-        console.error("Error fetching weather:", error);
-        res.status(500).json({ error: "Internal server error" });
-    }
+    await setCached(cachedKey, weather);
+    res.json(weather);
 });
 
 
