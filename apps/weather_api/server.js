@@ -1,40 +1,29 @@
 import express from "express";
-import { createClient } from "redis"
-import "dotenv/config"
+import "dotenv/config";
+import { getCached, setCached } from "./services/cacheService.js";
+import rateLimiter from "./middleware/rateLimiter.js";
+import requestLogger from "./middleware/requestLogger.js";
 
 const app = express();
-const redisClient = createClient({ url: process.env.REDIS_URL })
-redisClient.on("error", (err) => console.log("Redis Client Error", err))
 
-await redisClient.connect()
+app.use(requestLogger);
+app.use(rateLimiter);
 
 app.get("/api/weather", async (req, res) => {
+    console.log(`Processing request for city: ${req.query.city}`);
     const city = req.query.city;
-    if (!city) {
-        return res.status(400).json({
-            error: "400 - Missing or invalid city parameter"
-        })
-    }
+    if (!city) { return res.status(400).json({ error: "400 - Missing or invalid city parameter" }); }
 
     const cachedKey = city.trim().toLowerCase();
-    const cachedData = await redisClient.get(cachedKey);
+    const cachedData = await getCached(cachedKey);
 
-    if (cachedData) {
-        return res.json({
-            ...JSON.parse(cachedData),
-            cached: true
-        });
-    }
+    if (cachedData) { return res.json({ ...cachedData, cached: true }); }
 
-    // Visualcrossing URL format
-    // {BASE_URL}/{city}?key={API_KEY}&unitGroup=metric&include=current
     try {
-        const response = await fetch(`${process.env.WEATHER_API_BASE_URL}/${city}?key=${process.env.WEATHER_API_KEY}&unitGroup=metric&include=current`)
-        if (response.status === 400) {
-            return res.status(404).json({ error: "404 - city not found" });
-        } else if (!response.ok) {
-            return res.status(500).json({ error: "Weather service is unavailable" });
-        }
+        const response = await fetch(`${process.env.WEATHER_API_BASE_URL}/${city}?key=${process.env.WEATHER_API_KEY}&unitGroup=metric&include=current`);
+        if (response.status === 400) { return res.status(404).json({ error: "404 - city not found" }); }
+        else if (!response.ok) { return res.status(500).json({ error: "Weather service is unavailable" }); }
+
         const data = await response.json();
         const weather = {
             city: city,
@@ -44,16 +33,14 @@ app.get("/api/weather", async (req, res) => {
             wind_speed: data.currentConditions.windspeed,
             cached: false
         };
-        await redisClient.set(cachedKey, JSON.stringify(weather), { EX: Number(process.env.CACHE_TTL_SECONDS) || 60 * 60 * 12 })
+
+        await setCached(cachedKey, weather);
         res.json(weather);
     } catch (error) {
         console.error("Error fetching weather:", error);
         res.status(500).json({ error: "Internal server error" });
     }
-})
-
-
-app.listen(process.env.PORT, () => {
-    console.log(`Server started on port ${process.env.PORT}`);
-    console.log(`Open browser and go to http://localhost:${process.env.PORT}/api/weather?city=London`);
 });
+
+
+app.listen(process.env.PORT, () => { console.log(`Server started on port ${process.env.PORT}`); });
