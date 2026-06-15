@@ -5,7 +5,7 @@ const redisClient = createClient({ url: process.env.REDIS_URL });
 let isConnected = false;
 
 redisClient.on("error", (err) => console.error("[Redis] Connection error:", err.message));
-redisClient.on("connect", () => { isConnected = true; console.log("[Redis] Connected"); });
+redisClient.on("ready", () => { isConnected = true; console.log("[Redis] Connected"); });
 redisClient.on("end", () => { isConnected = false; console.warn("[Redis] Disconnected"); });
 redisClient.on("reconnecting", () => console.log("[Redis] Reconnecting..."));
 
