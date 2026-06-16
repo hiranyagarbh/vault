@@ -28,33 +28,59 @@ afterEach(() => {
 
 describe("fetchWeather", () => {
     let city = "Japan";
+    it("should call correct API URL", async () => {
+        process.env.WEATHER_API_BASE_URL = "https://test.api.com"
+        process.env.WEATHER_API_KEY = "testkey"
 
-    it("should check for city not found", async () => {
-        globalThis.fetch = async () => {
+        let calledUrl;
+        globalThis.fetch = async (url) => {
+            calledUrl = url;
             return {
-                ok: false
-                , status: 404
+                ok: true
+                , status: 200
+                , json: async () => ({
+                    currentConditions: {
+                        temp: 1
+                        , humidity: 1
+                        , conditions: "x"
+                        , windspeed: 1
+                    }
+                })
             }
         }
+
+        await fetchWeather(city);
+        assert.ok(calledUrl.includes(`${process.env.WEATHER_API_BASE_URL}/${city}?`))
+        assert.ok(calledUrl.includes(`key=${process.env.WEATHER_API_KEY}`))
+        assert.ok(calledUrl.includes("unitGroup=metric"))
+        assert.ok(calledUrl.includes("include=current"))
+    })
+
+    it("should check for city not found - 404", async () => {
+        globalThis.fetch = async () => ({ ok: false, status: 404 });
         const weather = await fetchWeather(city);
         assert.strictEqual(weather.error, "City not found");
+        assert.strictEqual(weather.status, 404);
+    })
+    it("should check for city not found - 400", async () => {
+        globalThis.fetch = async () => ({ ok: false, status: 400 });
+        const weather = await fetchWeather(city);
+        assert.strictEqual(weather.error, "City not found");
+        assert.strictEqual(weather.status, 404);
     })
 
     it("should check for service failure", async () => {
-        globalThis.fetch = async () => {
-            return {
-                ok: false
-                , status: 502
-            }
-        }
+        globalThis.fetch = async () => ({ ok: false, status: 502 });
         const weather = await fetchWeather(city);
         assert.strictEqual(weather.error, "Weather service is unavailable");
+        assert.strictEqual(weather.status, 502);
     })
 
     it("should check for server error", async () => {
         globalThis.fetch = async () => { throw new Error("Server error"); }
         const weather = await fetchWeather(city);
         assert.strictEqual(weather.error, "Internal server error");
+        assert.strictEqual(weather.status, 500);
     })
 
     it("should fetch the data", async () => {
