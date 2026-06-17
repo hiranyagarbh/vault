@@ -17,7 +17,7 @@ This project will help you understand how to:
 
 ## Data Model
 
-Each blog post is stored in a single `blog_posts` table. Tags are stored inside a `JSONB` column (`attributes`) rather than a separate table, which keeps the schema simple while still allowing fast indexed searches.
+Each blog post is stored in a single `blog_posts` table. Tags are stored directly inside a `JSONB` column (`tags`) as a flat array, keeping the schema clean while allowing indexed search operations.
 
 ### Schema
 
@@ -27,19 +27,19 @@ CREATE TABLE blog_posts (
   title       TEXT NOT NULL,
   content     TEXT NOT NULL,
   category    TEXT NOT NULL,
-  attributes  JSONB NOT NULL DEFAULT '{}'::jsonb,
+  tags        JSONB NOT NULL DEFAULT '[]'::jsonb,
   created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   updated_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
 -- Indexes the entire JSON structure to allow fast searching inside JSONB arrays
-CREATE INDEX idx_blog_posts_attributes ON blog_posts USING gin (attributes);
+CREATE INDEX idx_blog_posts_tags ON blog_posts USING gin (tags);
 ```
 
-The `attributes` column holds the `tags` array:
+The `tags` column holds the tags array:
 
 ```json
-{ "tags": ["Tech", "Programming"] }
+["Tech", "Programming"]
 ```
 
 ## API Endpoints
