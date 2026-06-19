@@ -7,7 +7,7 @@ export async function createPost(data) {
       VALUES ($1, $2, $3, $4)
       RETURNING *;
     `;
-  const result = await pool.query(query, [title, content, category, JSON.stringify(tags)]);
+  const result = await pool.query(query, [title, content, category, tags ? JSON.stringify(tags) : '[]']);
   return result.rows[0];
 }
 
@@ -42,15 +42,15 @@ export async function updatePost(id, data) {
   const query = `
       UPDATE blog_posts 
       SET 
-        title = COALESCE($2, title), 
-        content = COALESCE($3, content), 
-        category = COALESCE($4, category), 
-        tags = COALESCE($5, tags),
+        title = $2, 
+        content = $3, 
+        category = $4, 
+        tags = $5,
         updated_at = NOW()
       WHERE id = $1
       RETURNING *;
     `;
-  const result = await pool.query(query, [id, title || null, content || null, category || null, tags ? JSON.stringify(tags) : null]);
+  const result = await pool.query(query, [id, title, content, category, tags ? JSON.stringify(tags) : '[]']);
   return result.rows[0];
 }
 
