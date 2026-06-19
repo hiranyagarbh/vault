@@ -7,7 +7,7 @@ export async function createPost(data) {
       VALUES ($1, $2, $3, $4)
       RETURNING *;
     `;
-  const result = await pool.query(query, [title, content, category, tags]);
+  const result = await pool.query(query, [title, content, category, JSON.stringify(tags)]);
   return result.rows[0];
 }
 
@@ -23,6 +23,7 @@ export async function searchPosts(term) {
       WHERE 
         title ILIKE $1 OR 
         content ILIKE $1 OR
+        category ILIKE $1 OR
         tags::text ILIKE $1
       ORDER BY created_at DESC
     `;
@@ -49,7 +50,7 @@ export async function updatePost(id, data) {
       WHERE id = $1
       RETURNING *;
     `;
-  const result = await pool.query(query, [id, title || null, content || null, category || null, tags || null]);
+  const result = await pool.query(query, [id, title || null, content || null, category || null, tags ? JSON.stringify(tags) : null]);
   return result.rows[0];
 }
 
