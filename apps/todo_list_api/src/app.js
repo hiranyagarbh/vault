@@ -1,9 +1,8 @@
 import express from "express";
+import authRoutes from "./routes/authRoutes.js";
 
 const app = express();
 app.use(express.json());
-
-// start and check db connection
-
+app.use(authRoutes);
 
 export default app;
