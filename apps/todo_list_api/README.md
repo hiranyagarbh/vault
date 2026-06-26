@@ -16,7 +16,7 @@ In this project, you will build a backend API that allows users to register, log
 - **RESTful Route Design:** Design clean endpoints with logical HTTP verbs (`GET`, `POST`, `PUT`, `DELETE`).
 - **Authorization & Security:** Restrict task access, modification, and deletion to authorized owners.
 - **Centralized Error Handling:** Return clean, predictable error payloads with correct HTTP status codes.
-- **Pagination & Filtering:** Efficiently fetch subset data using query parameters.
+- **Pagination:** Efficiently fetch subset data using query parameters.
 
 ---
 
@@ -251,7 +251,6 @@ todo_list_api/
 ## Bonus Challenges
 
 For an extra challenge and deeper learning, consider implementing:
-1. **Filtering & Sorting:** Allow users to filter tasks by completion status (`GET /todos?completed=true`) or sort them by date created (`GET /todos?sortBy=createdAt:desc`).
-2. **Refresh Token Mechanism:** Implement short-lived access tokens and long-lived refresh tokens stored securely in HTTP-only cookies.
-3. **Rate Limiting & Throttling:** Prevent brute force attacks on `/login` and API abuse using rate limiters (e.g., `express-rate-limit`).
-4. **Unit & Integration Tests:** Write comprehensive test suites mocking database actions to verify route logic.
+1. **Refresh Token Mechanism:** Implement short-lived access tokens and long-lived refresh tokens stored securely in HTTP-only cookies.
+2. **Rate Limiting & Throttling:** Prevent brute force attacks on `/login` and API abuse using rate limiters.
+3. **Unit & Integration Tests:** Write comprehensive test suites mocking database actions to verify route logic.
