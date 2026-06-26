@@ -1,5 +1,6 @@
 DROP TABLE IF EXISTS todos CASCADE;
 DROP TABLE IF EXISTS users CASCADE;
+DROP TABLE IF EXISTS sessions CASCADE;
 
 CREATE TABLE users (
     id SERIAL PRIMARY KEY,
@@ -17,6 +18,16 @@ CREATE TABLE todos (
     updated_at TIMESTAMPTZ DEFAULT NOW(),
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 );
+CREATE TABLE sessions (
+    id SERIAL PRIMARY KEY,
+    user_id INTEGER NOT NULL,
+    refresh_token TEXT NOT NULL,
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW(),
+    expires_at TIMESTAMPTZ NOT NULL,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);
 
 CREATE INDEX idx_todos_user_id ON todos(user_id);
 CREATE INDEX idx_users_email ON users(email);
+CREATE INDEX idx_session_user_id ON sessions(user_id);
