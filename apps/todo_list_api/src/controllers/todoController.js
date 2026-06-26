@@ -1,4 +1,4 @@
-import { createTodo, getAllTodos, getTodoById, updateTodo, deleteTodo } from "../models/todo.js";
+import { createTodo, getAllTodos, getTodoById, updateTodo, deleteTodo, getTotalTodos } from "../models/todo.js";
 import { validateTodo, validatePagination, validateId } from "../utils/validation.js";
 export async function createTodoHandler(req, res) {
     const { id: userId } = req.user;
@@ -16,11 +16,12 @@ export async function getAllTodosHandler(req, res) {
     if (error) { return res.status(400).json({ message: error.error }); }
     const result = await getAllTodos(userId, Number(page), Number(limit));
     if (!result.length) { return res.status(404).json({ error: "No todos found" }); }
+    const totalTodos = await getTotalTodos(userId);
     return res.status(200).json({
         data: result,
         page: Number(page),
         limit: Number(limit),
-        total: result.length
+        total: totalTodos
     });
 }
 

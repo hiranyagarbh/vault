@@ -44,3 +44,9 @@ export async function deleteTodo(userId, id) {
     const result = await pool.query(query, values);
     return result.rows[0] || null;
 }
+
+export async function getTotalTodos(userId) {
+    const query = "SELECT COUNT(*) FROM todos WHERE user_id = $1";
+    const result = await pool.query(query, [userId]);
+    return Number(result.rows[0].count);
+}
