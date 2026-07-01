@@ -25,4 +25,6 @@ function rateLimiter(req, res, next) {
     next();
 }
 
+export function resetRequestLog() { requestLog.clear(); }
+
 export default rateLimiter;
