@@ -1,7 +1,7 @@
 {
   "name": "todo_list_api",
   "version": "1.0.0",
-  "description": "",
+  "description": "Secure RESTful API for managing user to-do lists with JWT authentication",
   "main": "src/server.js",
   "scripts": {
     "start": "node src/server.js",
@@ -9,8 +9,12 @@
     "test": "node --test --test-concurrency=1 tests/*.test.js",
     "setup": "psql todo_list_api < src/config/schema.sql"
   },
-  "keywords": [],
-  "author": "",
+  "keywords": [
+    "todo",
+    "api",
+    "rest",
+    "jwt"
+  ],
   "license": "ISC",
   "devEngines": {
     "packageManager": {

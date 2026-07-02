@@ -254,3 +254,7 @@ For an extra challenge and deeper learning, consider implementing:
 1. **Refresh Token Mechanism:** Implement short-lived access tokens and long-lived refresh tokens stored securely in HTTP-only cookies.
 2. **Rate Limiting & Throttling:** Prevent brute force attacks on `/login` and API abuse using rate limiters.
 3. **Unit & Integration Tests:** Write comprehensive test suites mocking database actions to verify route logic.
+
+---
+
+*Last reviewed: 2 July 2026*
